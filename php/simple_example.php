@@ -33,30 +33,6 @@ require 'workbooks_api.php';
 $exit_error = 1;
 $exit_ok = 0;
 
-
-/*
- * A custom logger for capturing diagnostics from the API.  This one works well with Workbooks' own auto-test system - it
- * leaves the diagnostics behind in a file whose name indicates whether this script has succeeded or not.
- */
-class apiLogger {
-  private static $log_filehandle;
-  
-  function logToFile($msg, $level) {
-    if (!isset(self::$log_filehandle)) {
-      if (!is_dir('log')) {
-        mkdir('log');
-      }
-      self::$log_filehandle = fopen('log/api_php_incomplete_test.log', 'a');
-    }
-    fwrite(self::$log_filehandle, '[' . $level .'] ' . $msg . "\n");
-  }
-  
-  function renameOnSuccess() {
-    fclose(self::$log_filehandle);
-    rename('log/api_php_incomplete_test.log', 'log/api_php_completed_test.log');
-  }
-}
-
 /*
  * A couple of simple helper functions for this example script.
  */
@@ -93,18 +69,16 @@ function affected_object_id_versions($response) {
 $workbooks = new WorkbooksApi(array(
   'application_name'   => 'PHP test client',                     // Mandatory, should be the "human name" for the client
   'user_agent'         => 'php_test_client/0.1',                 // Mandatory, should include version number
-
-  // If there is no 'logger_callback' then no logging is done.
-  //'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
   
   // The following settings are used in Workbooks auto-test environment and are not typical.
-  'logger_callback'    => array('apiLogger', 'logToFile'),       // Optional, this logger logs to a file
+  'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
   'connect_timeout'    => 120,                                   // Optional, defaults to 20 seconds
   'request_timeout'    => 120,                                   // Optional, defaults to 20 seconds
   'service'            => 'http://localhost:3000',               // Optional, defaults to the Production Workbooks service
   'verify_peer'        => false,                                 // Optional, defaults to checking the peer SSL certificate
 ));
 
+$workbooks->log('Running test script', __FILE__, 'info');
 
 /*
  * Connect to the service and login
@@ -300,7 +274,6 @@ if (!$logout['success']) {
   exit($exit_error);
 }
 
-apiLogger::renameOnSuccess();
 exit($exit_ok);
 
 ?>
