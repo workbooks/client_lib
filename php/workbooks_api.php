@@ -751,7 +751,7 @@ class WorkbooksApi
    * @return Array (Integer the http status, String the response text)
    * @throws WorkbooksApiException
    */
-  protected function makeRequest($endpoint, $method, $post_params, $encoded_post_params='') {
+  public function makeRequest($endpoint, $method, $post_params, $encoded_post_params='') {
     //$this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $encoded_post_params));
 
     $start_time = microtime(true);
