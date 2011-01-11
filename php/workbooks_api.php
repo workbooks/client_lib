@@ -958,7 +958,8 @@ class WorkbooksApi
         if (!isset($value)) {
           $value = ':no_value:';
         }
-        $url_encoded_objects[] = (urlencode($key) . '[]=' . urlencode($value));
+        $unnested_key = $this->unnestKey($key);
+        $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($value));
       }
     }
     
@@ -968,6 +969,32 @@ class WorkbooksApi
     return $retval;
   }
 
+  /**
+   * Normalise any nested keys so they have the expected format for the wire, i.e. 
+   * convert things like this:
+   *   org_lead_party[main_location[email]]
+   * into this:   
+   *   org_lead_party[main_location][email]
+   *
+   * @param $attribute_name String the attribute name with potentially nested square brackets
+   * @return String the unnested attribute name
+   */
+  protected function unnestKey($attribute_name) {
+    $this->log('unnestKey() called with param', $attribute_name);
+    
+    # If it does not end in ']]' then it is not a nested key.
+    if (!preg_match('/\]\]$/', $attribute_name)) {
+      return $attribute_name;
+    }
+    # Otherwise it is nested: split and re-join
+    $parts = preg_split('/[\[\]]+/', $attribute_name, 0, PREG_SPLIT_NO_EMPTY);
+    $retval= $parts[0] . '[' . join('][', array_slice($parts, 1)) . ']';
+    return $retval;
+    
+    $this->log('unnestKey() returns', $retval);
+    return $retval;
+  }
+  
   /**
    * Construct a URL for the current Workbooks service including path and parameters.
    *
