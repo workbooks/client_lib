@@ -980,7 +980,7 @@ class WorkbooksApi
    * @return String the unnested attribute name
    */
   protected function unnestKey($attribute_name) {
-    $this->log('unnestKey() called with param', $attribute_name);
+    //$this->log('unnestKey() called with param', $attribute_name);
     
     # If it does not end in ']]' then it is not a nested key.
     if (!preg_match('/\]\]$/', $attribute_name)) {
@@ -989,9 +989,8 @@ class WorkbooksApi
     # Otherwise it is nested: split and re-join
     $parts = preg_split('/[\[\]]+/', $attribute_name, 0, PREG_SPLIT_NO_EMPTY);
     $retval= $parts[0] . '[' . join('][', array_slice($parts, 1)) . ']';
-    return $retval;
     
-    $this->log('unnestKey() returns', $retval);
+    //$this->log('unnestKey() returns', $retval);
     return $retval;
   }
   
