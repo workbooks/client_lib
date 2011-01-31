@@ -438,9 +438,9 @@ class WorkbooksApi
    * @param Mixed $expression any values to output with the message
    * @param String $level optional: one of 'error', 'warning', 'notice', 'info', 'debug' (the default)
    */
-  public function log($msg, $expression=nil, $level='debug') {
+  public function log($msg, $expression='nil', $level='debug') {
     if (isset($this->logger_callback)) {
-      if ($expression != nil) {
+      if ($expression != 'nil') {
         $msg .= ' «' . var_export($expression, true) . '»';
       }
 
@@ -668,7 +668,7 @@ class WorkbooksApi
       $objs = array(0 => $objs);
     }  
 
-    $filter_params = $this->encodeMethodParams(&$objs, $method);
+    $filter_params = $this->encodeMethodParams($objs, $method);
     $encoded_post_params = $this->fullSquare($objs);
     $response = $this->apiCall($endpoint, 'PUT', $params, $filter_params . '&' . $encoded_post_params);
 
@@ -850,7 +850,7 @@ class WorkbooksApi
    * @return String a set of parameters representing the filter which is required to 
    *   define the working set of objects.
    */
-  protected function encodeMethodParams($obj_array, $method) {
+  protected function encodeMethodParams(&$obj_array, $method) {
     //$this->log('encodeMethodParams() called with params', array($obj_array, $method));
     $filter_ids = array();
     foreach ($obj_array as &$obj) {
