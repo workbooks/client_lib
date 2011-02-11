@@ -97,7 +97,6 @@ _Create one or more objects_
 Example, creating a single organisation:
 <code>
     $create_one_organisation = array(
-      'method'                               => 'CREATE',
       'name'                                 => 'Birkbeck Burgers',
       'industry'                             => 'Food',
       'main_location[country]'               => 'United Kingdom',
@@ -207,6 +206,7 @@ Example:
         'id'                                   => $object_id_lock_versions[0]['id'],
         'lock_version'                         => $object_id_lock_versions[0]['lock_version'],
         'name'                                 => 'Lights \'R Us',
+        'main_location[postcode]'              => NULL,   # Clear the postcode.
       ),
       array (
         'method'                               => 'DELETE',
