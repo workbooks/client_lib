@@ -954,10 +954,15 @@ class WorkbooksApi
     $url_encoded_objects = array();
     foreach ($obj_array as &$obj) {
       foreach ($unique_keys as $key) {
-        $value = $obj[$key];
-        if (!isset($value)) {
-          $value = ':no_value:';
+        if (array_key_exists($key, $obj) && $obj[$key] == NULL) {
+          $value = ':null_value:';
         }
+        elseif (!isset($obj[$key])) {
+          $value = ':no_value:';
+        } else {
+          $value = $obj[$key];
+        }
+        
         $unnested_key = $this->unnestKey($key);
         $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($value));
       }

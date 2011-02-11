@@ -202,6 +202,7 @@ $batch_organisations = array(
     'id'                                   => $object_id_lock_versions[0]['id'],
     'lock_version'                         => $object_id_lock_versions[0]['lock_version'],
     'name'                                 => 'Lights \'R Us',
+    'main_location[postcode]'              => NULL,   # Clear the postcode.
   ),
   array (
     'method'                               => 'DELETE',
