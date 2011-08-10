@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API via a thin PHP wrapper
  *
- *   Last commit $Id$
+ *   Last commit $Id: simple_example.php 12114 2011-03-30 16:02:23Z jkay $
  *
  *       The MIT License
  *

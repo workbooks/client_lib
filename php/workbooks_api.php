@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id$
+ *   Last commit $Id: workbooks_api.php 13514 2011-08-10 14:39:00Z jkay $
  *
  *       The MIT License
  *
@@ -876,6 +876,7 @@ class WorkbooksApi
           }
           $obj['id'] = '0';
           $obj['lock_version'] = '0';
+          $filter_ids[]= '0';
           break;
         case 'UPDATE':
           $obj['__method'] = 'PUT';

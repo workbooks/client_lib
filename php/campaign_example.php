@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to operate on Campaigns and a number of
  *   related objects via a thin PHP wrapper
  *
- *   Last commit $Id$
+ *   Last commit $Id: campaign_example.php 12114 2011-03-30 16:02:23Z jkay $
  *
  *       The MIT License
  *
