@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 13514 2011-08-10 14:39:00Z jkay $
+ *   Last commit $Id: workbooks_api.php 13900 2011-09-09 13:37:42Z cknight $
  *
  *       The MIT License
  *
@@ -136,7 +136,7 @@ class WorkbooksApi
     if (isset($params['logger_callback'])) {
       $this->setLoggerCallback($params['logger_callback']);
     }
-    //$this->log('new() called with params', $params);
+    // $this->log('new() called with params', $params);
 
     if (isset($params['application_name'])) {
       $this->setApplicationName($params['application_name']);
@@ -176,7 +176,7 @@ class WorkbooksApi
       CURLOPT_SSL_VERIFYPEER => $this->getVerifyPeer()
     );
     
-    //$this->log('new() returns', $this);
+    // $this->log('new() returns', $this);
     return $this;
   }
   
@@ -508,7 +508,7 @@ class WorkbooksApi
    * Otherwise the login has failed outright: see the Workbooks API documentation for a list of the possible http statuses.
    */
   public function login($params) {
-    //$this->log('login() called with params', $params);
+    // $this->log('login() called with params', $params);
 
     if (empty($params['username'])) {
       throw new Exception('A username must be supplied');
@@ -661,7 +661,7 @@ class WorkbooksApi
    * As usual, check the API documentation for further information.
    */
   public function batch($endpoint, $objs, $params=array(), $method='none') {
-    //$this->log('batch() called with params', array($endpoint, $objs));
+    // $this->log('batch() called with params', array($endpoint, $objs));
     
     // If just one object was passed in, turn it into an array.
     if (!is_array($objs[0])) {
@@ -731,8 +731,8 @@ class WorkbooksApi
     } else {
       $response = $sr['http_body'];
     }
-
-    //$this->log('apiCall() returns', $response, 'info');
+    
+    // $this->log('apiCall() returns', $response, 'info');
     return $response;
   }
 
@@ -752,7 +752,7 @@ class WorkbooksApi
    * @throws WorkbooksApiException
    */
   public function makeRequest($endpoint, $method, $post_params, $encoded_post_params='') {
-    //$this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $encoded_post_params));
+    // $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $encoded_post_params));
 
     $start_time = microtime(true);
     $url_params = array(
@@ -790,7 +790,7 @@ class WorkbooksApi
 
     // Make the request, await the response. Timeouts as above.
     $curl_result_with_headers = curl_exec($curl_handle);
-    //$this->log('RESPONSE', $curl_result_with_headers);
+    // $this->log('RESPONSE', $curl_result_with_headers);
     
     if ($curl_result_with_headers === false) {
       $e = new WorkbooksApiException(array(
@@ -835,7 +835,7 @@ class WorkbooksApi
     $this->setLastRequestDuration($end_time - $start_time);
     
     $retval = array('http_status' => $http_status, 'http_body' => $body);
-    //$this->log('makeRequest() returns', $retval);
+    // $this->log('makeRequest() returns', $retval);
     return $retval;
   }
 
@@ -851,7 +851,7 @@ class WorkbooksApi
    *   define the working set of objects.
    */
   protected function encodeMethodParams(&$obj_array, $method) {
-    //$this->log('encodeMethodParams() called with params', array($obj_array, $method));
+    // $this->log('encodeMethodParams() called with params', array($obj_array, $method));
     $filter_ids = array();
     foreach ($obj_array as &$obj) {
       $method_key = (array_key_exists('method', $obj) ? 'method' : '__method');
@@ -925,7 +925,7 @@ class WorkbooksApi
       }
     }
       
-    //$this->log('encodeMethodParams() results in', array($filter, $obj_array));
+    // $this->log('encodeMethodParams() results in', array($filter, $obj_array));
     return $filter;
   }
    
@@ -939,7 +939,7 @@ class WorkbooksApi
    * @return String the encoded array, suitable for passing to Workbooks
    */
   protected function fullSquare($obj_array) {
-    //$this->log('fullSquare() called with params', $obj_array);
+    // $this->log('fullSquare() called with params', $obj_array);
     
     // Get the full set of keys
     $all_keys = array();
@@ -957,21 +957,32 @@ class WorkbooksApi
       foreach ($unique_keys as $key) {
         if (array_key_exists($key, $obj) && $obj[$key] == NULL) {
           $value = ':null_value:';
-        }
-        elseif (!isset($obj[$key])) {
+        } elseif (!isset($obj[$key])) {
           $value = ':no_value:';
         } else {
           $value = $obj[$key];
         }
         
         $unnested_key = $this->unnestKey($key);
-        $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($value));
+        if (is_array($value)) {
+          $new_val = "[";
+          foreach ($value as $val) {
+            if ($new_val != "[") {
+              $new_val .= ",";
+            }
+            $new_val .= $val;
+          }
+          $new_val .= "]";
+          $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($new_val));
+        } else {
+          $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($value));
+        }
       }
     }
     
-    //$this->log('fullSquare() array for return', $url_encoded_objects);
+    // $this->log('fullSquare() array for return', $url_encoded_objects);
     $retval = implode('&', $url_encoded_objects);
-    //$this->log('fullSquare() returns', $retval);
+    // $this->log('fullSquare() returns', $retval);
     return $retval;
   }
 
@@ -986,7 +997,7 @@ class WorkbooksApi
    * @return String the unnested attribute name
    */
   protected function unnestKey($attribute_name) {
-    //$this->log('unnestKey() called with param', $attribute_name);
+    // $this->log('unnestKey() called with param', $attribute_name);
     
     # If it does not end in ']]' then it is not a nested key.
     if (!preg_match('/\]\]$/', $attribute_name)) {
@@ -996,7 +1007,7 @@ class WorkbooksApi
     $parts = preg_split('/[\[\]]+/', $attribute_name, 0, PREG_SPLIT_NO_EMPTY);
     $retval= $parts[0] . '[' . join('][', array_slice($parts, 1)) . ']';
     
-    //$this->log('unnestKey() returns', $retval);
+    // $this->log('unnestKey() returns', $retval);
     return $retval;
   }
   
@@ -1008,7 +1019,7 @@ class WorkbooksApi
    * @return String the URL for the given parameters
    */
   protected function getUrl($path, $query_params=array()) {
-    //$this->log('getUrl() called with params', array($path, $query_params));
+    // $this->log('getUrl() called with params', array($path, $query_params));
     
     $url = $this->getService();
     
@@ -1021,7 +1032,7 @@ class WorkbooksApi
       $url .= '?' . http_build_query($query_params, null, '&');
     }
     
-    //$this->log('getUrl() returns', $url);
+    // $this->log('getUrl() returns', $url);
     return $url;
   }
 

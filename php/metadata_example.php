@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API to fetch metadata via a thin PHP wrapper
  *
- *   Last commit $Id$
+ *   Last commit $Id: metadata_example.php 13905 2011-09-12 08:30:24Z jkay $
  *
  *       The MIT License
  *

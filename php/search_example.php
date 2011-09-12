@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to search for records using
  *   their most significant fields via a thin PHP wrapper
  *
- *   Last commit $Id$
+ *   Last commit $Id: search_example.php 13905 2011-09-12 08:30:24Z jkay $
  *
  *       The MIT License
  *
