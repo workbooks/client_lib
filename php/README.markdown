@@ -1,6 +1,6 @@
 # PHP language binding for the Workbooks API
 
-See `simple_example.php` for some simple usage examples and explore the objects returned by the API. The comments in the `workbooks_api.php` file contain additional information to that here.
+See the Script Library within Workbooks itself and `simple_example.php` for some simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.php` file contain additional information to that here.
 
 ## Usage
 
@@ -13,14 +13,14 @@ External scripts need to establish a session manually whereas this is done autom
 
 The Process Engine will automatically create a login session for your script so you can skip the description of `new()`, `login()` and `logout()` below.
 Your script will be invoked from time to time by the service, typically through a user action or according to a schedule.
-Your script is passed the variable `$wb` which is an object representing a valid Workbooks session. 
-Using $wb you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`.
+Alongside its parameters your script is passed the variable `$workbooks` which is an object representing a valid Workbooks session. 
+Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`. You can also call equivalent methods which check the response and raise an exception if it is not expected: see `assertGet()`, `assertCreate()`, `assertUpdate()`, `assertDelete()`, `assertBatch()`.
 
 ## External Script Usage
 
 Session IDs are transferred in cookies. Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `setSessionId()` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
 
-Having obtained a session you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`.
+Having obtained a session you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions.
 
 ### new()
 
@@ -30,7 +30,7 @@ Example:
 <code>
     require 'workbooks_api.php';
     
-    $wb = new WorkbooksApi(array(
+    $workbooks = new WorkbooksApi(array(
       'application_name'   => 'PHP test client',
       'user_agent'         => 'php_test_client/0.1'
     )
@@ -47,7 +47,7 @@ Example:
       'password' => 'passw0rd',
     );
     
-    $login = $wb->login($login_params);
+    $login = $workbooks->login($login_params);
     
     if ($login['http_status'] == WorkbooksApi::HTTP_STATUS_FORBIDDEN && $login['response']['failure_reason'] == 'no_database_selection_made') {
       /*
@@ -62,7 +62,7 @@ Example:
        * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice 
        * for all of their API clients.
        */
-      $login = $wb->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
+      $login = $workbooks->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
     }
     
     if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
@@ -76,7 +76,7 @@ _Logout from the service_
 
 Example:
 <code>
-    $logout = $wb->logout();
+    $logout = $workbooks->logout();
 </code>
 
 ## Interacting with Workbooks
@@ -103,7 +103,7 @@ Example:
         'updated_by_user[person_name]',
       )
     );
-    $response = $wb->get('crm/organisations', $filter_limit_select);
+    $response = $workbooks->get('crm/organisations', $filter_limit_select);
 </code>
 
 ### create()
@@ -119,7 +119,7 @@ Example, creating a single organisation:
       'main_location[county_province_state]' => 'Oxfordshire',
       'main_location[town]'                  => 'Oxford',
     );
-    $response = $wb->create('crm/organisations', $create_one_organisation);
+    $response = $workbooks->create('crm/organisations', $create_one_organisation);
 </code>
 
 Or create several:
@@ -155,7 +155,7 @@ Or create several:
       ),
     );
 
-    $response = $wb->create('crm/organisations', $create_three_organisations);
+    $response = $workbooks->create('crm/organisations', $create_three_organisations);
 </code>
 
 ### update()
@@ -184,7 +184,7 @@ Example:
       ),
     );
 
-    $response = $wb->update('crm/organisations', $update_three_organisations);
+    $response = $workbooks->update('crm/organisations', $update_three_organisations);
 </code>
 
 ### delete()
@@ -199,7 +199,7 @@ Example:
         'lock_version'                         => $object_id_lock_versions[0]['lock_version'],
       )
     );
-    $response = $wb->delete('crm/organisations', $object_id_lock_versions);
+    $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
 </code>
 
 ### batch()
@@ -236,7 +236,7 @@ Example:
       ),
     );
 
-    $response = $wb->batch('crm/organisations', $batch_organisations);
+    $response = $workbooks->batch('crm/organisations', $batch_organisations);
 </code>
 
 ## Further Information
