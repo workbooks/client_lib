@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API via a thin PHP wrapper
  *
- *   Last commit $Id: simple_example.php 12114 2011-03-30 16:02:23Z jkay $
+ *   Last commit $Id: simple_example.php 14702 2011-11-11 21:13:05Z gbarlow $
  *
  *       The MIT License
  *
@@ -264,16 +264,6 @@ $workbooks->log('Fetched objects', $response['data']);
  */
 $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
 assert_response($workbooks, $response, 'ok');
-
-/*
- * Logout
- * Arguably testing for successful logout is a bit of a waste of effort...
- */
-$logout = $workbooks->logout();
-if (!$logout['success']) {
-  $workbooks->log('Logout failed.', $logout, 'error');
-  exit($exit_error);
-}
 
 exit($exit_ok);
 

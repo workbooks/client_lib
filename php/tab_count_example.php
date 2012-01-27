@@ -1,14 +1,13 @@
 <?php
   
 /**
- *   A demonstration of using the Workbooks API to search for records using
- *   their most significant fields via a thin PHP wrapper
+ *   A demonstration of using the Workbooks API to fetch the numbers of related items via a thin PHP wrapper.
  *
- *   Last commit $Id: search_example.php 14702 2011-11-11 21:13:05Z gbarlow $
+ *   Last commit $Id$
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2010, Workbooks Online Limited.
+ *       Copyright (c) 2008-2011, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -116,19 +115,37 @@ if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
 }
 
 
+/*
+ * We now have a valid logged-in session. This script fetches 'tab counts' for a variety of records.
+ */
 
 /*
- * Do the search
+ * 1. Find the CaseQueue to put the case on (we are looking for 'Unassigned').
  */
-$response = $workbooks->get('searchables.api', 
-	array(
-		'search' => 'James', 
-		'_sort' => 'relevance', 
-		'_dir' => 'DESC' 
-	)
+$case_queue_filter_limit_select = array(
+  '_ff[]'                => array('queue_type'),
+  '_ft[]'                => array('eq'),             
+  '_fc[]'                => array('Unassigned'), 
+  '_select_columns[]'    => array(                             // An array, of columns to select
+    'id',
+    'lock_version',
+    'name',
+  )
 );
+$response = $workbooks->get('crm/case_queues', $case_queue_filter_limit_select);
 assert_response($workbooks, $response, 'ok');
 $workbooks->log('Fetched objects', $response['data']);
+$unassigned_queue_id = $response['data'][0]['id'];
+
+/*
+ * Logout
+ * Arguably testing for successful logout is a bit of a waste of effort...
+ */
+$logout = $workbooks->logout();
+if (!$logout['success']) {
+  $workbooks->log('Logout failed.', $logout, 'error');
+  exit($exit_error);
+}
 
 exit($exit_ok);
 

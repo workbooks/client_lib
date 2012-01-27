@@ -1,14 +1,13 @@
 <?php
   
 /**
- *   A demonstration of using the Workbooks API to search for records using
- *   their most significant fields via a thin PHP wrapper
+ *   A demonstration of using the Workbooks API via a thin PHP wrapper to CRUD notes
  *
- *   Last commit $Id: search_example.php 14702 2011-11-11 21:13:05Z gbarlow $
+ *   Last commit $Id$
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2010, Workbooks Online Limited.
+ *       Copyright (c) 2008-2011, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -68,8 +67,8 @@ function affected_object_id_versions($response) {
  * Initialise the Workbooks API object
  */
 $workbooks = new WorkbooksApi(array(
-  'application_name'   => 'php_cases_example',                   // Mandatory, should be the "human name" for the client
-  'user_agent'         => 'php_cases_example/0.1',               // Mandatory, should include version number
+  'application_name'   => 'PHP test client',                     // Mandatory, should be the "human name" for the client
+  'user_agent'         => 'php_test_client/0.1',                 // Mandatory, should include version number
   
   // The following settings are used in Workbooks auto-test environment and are not typical.
   'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
@@ -116,19 +115,76 @@ if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
 }
 
 
+/*
+ * We now have a valid logged-in session. This script creates an organisation and then does a series of 'CRUD' (Create, Read, Update, Delete) operations 
+ * on associated Notes.
+ */
 
 /*
- * Do the search
+ * 1. Create a single organisation
  */
-$response = $workbooks->get('searchables.api', 
-	array(
-		'search' => 'James', 
-		'_sort' => 'relevance', 
-		'_dir' => 'DESC' 
-	)
+$create_one_organisation = array(
+  'method'                               => 'CREATE',
+  'name'                                 => 'Nogo Supermarkets',
+  'industry'                             => 'Food',
+  'main_location[country]'               => 'United Kingdom',
+  'main_location[county_province_state]' => 'Oxfordshire',
+  'main_location[town]'                  => 'Oxford',
 );
+$response = $workbooks->create('crm/organisations', $create_one_organisation);
+assert_response($workbooks, $response, 'ok');
+$created_organisation_id_lock_versions = affected_object_id_versions($response);
+
+/*
+ * 2. Create three Notes associated with that organisation
+ */
+
+/*
+ * 3. Update the first Note associated with that organisation
+ */
+
+/*
+ * 4. Delete one the last Note associated with that organisation
+ */
+ 
+/*
+ * 5. List the two Notes we have left
+ */
+$filter_limit_select = array(
+  '_start'               => '0',                                     // Starting from the 'zeroth' record
+  '_limit'               => '100',                                   //   fetch up to 100 records
+  '_sort'                => 'id',                                    // Sort by 'id'
+  '_dir'                 => 'ASC',                                   //   in ascending order
+  '_ff[]'                => 'main_location[county_province_state]',  // Filter by this column
+  '_ft[]'                => 'ct',                                    //   containing
+  '_fc[]'                => 'Berkshire',                             //   'Berkshire'
+  '_select_columns[]'    => array(                                   // An array, of columns to select
+    'id',
+    'lock_version',
+    'name',
+    'main_location[town]',
+    'updated_by_user[person_name]',
+  )
+);
+$response = $workbooks->get('crm/organisations', $filter_limit_select);
 assert_response($workbooks, $response, 'ok');
 $workbooks->log('Fetched objects', $response['data']);
+
+/*
+ * 6. Delete the the organisation (and any related notes!) which was created in this script
+ */
+$response = $workbooks->delete('crm/organisations', $created_organisation_id_lock_versions);
+assert_response($workbooks, $response, 'ok');
+
+/*
+ * Logout
+ * Arguably testing for successful logout is a bit of a waste of effort...
+ */
+$logout = $workbooks->logout();
+if (!$logout['success']) {
+  $workbooks->log('Logout failed.', $logout, 'error');
+  exit($exit_error);
+}
 
 exit($exit_ok);
 

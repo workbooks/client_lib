@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API to fetch metadata via a thin PHP wrapper
  *
- *   Last commit $Id: metadata_example.php 13905 2011-09-12 08:30:24Z jkay $
+ *   Last commit $Id: metadata_example.php 14702 2011-11-11 21:13:05Z gbarlow $
  *
  *       The MIT License
  *
@@ -178,16 +178,6 @@ $response = $workbooks->get('metadata/types', $fetch_all);
 $workbooks->log('Fetched objects', $response);
 assert_response($workbooks, $response, 'ok');
 $workbooks->log('Fetched objects', $response['data']);
-
-/*
- * Logout
- * Arguably testing for successful logout is a bit of a waste of effort...
- */
-$logout = $workbooks->logout();
-if (!$logout['success']) {
-  $workbooks->log('Logout failed.', $logout, 'error');
-  exit($exit_error);
-}
 
 exit($exit_ok);
 

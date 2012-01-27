@@ -3,11 +3,11 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 13900 2011-09-09 13:37:42Z cknight $
+ *   Last commit $Id: workbooks_api.php 15322 2012-01-23 12:25:33Z swhitehouse $
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2010, Workbooks Online Limited.
+ *       Copyright (c) 2008-2011, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -31,7 +31,7 @@
  *   Significant methods in the class Workbooks:
  *     new                       - create an API object, specifying various options
  *     login                     - authenticate
- *     logout                    - terminate logged-in session
+ *     logout                    - terminate logged-in session (automatic when object destroyed)
  *     get                       - get a list of objects, or show an object
  *     create                    - create objects
  *     update                    - update objects
@@ -39,6 +39,11 @@
  *     batch                     - create, update, and delete objects together
  *     getSessionId/setSessionId - use these to connect to an existing session
  *     condensedStatus           - use this to quickly check the response
+ *
+ *   NOTE: When this file is included, if certain values with names beginning '_workbooks_' 
+ *         exist in the array '$params' then those values are used to establish a connection
+ *         back to the Workbooks service, putting a handle to it in the variable '$workbooks'.
+ *         This technique is used by scripts running under the Workbooks Process Engine. 
  *
  *   Requirements: Uses CURL and JSON PHP extensions since these are the most widely available.
  */
@@ -82,24 +87,30 @@ class WorkbooksApiException extends Exception
 class WorkbooksApi
 {
 
-  const VERSION = '1.0';
+  const VERSION = '1.1';
 
   /**
    * Instance variables
    */
-  protected $curl_handle;
-  protected $curl_options;
-  protected $logger_callback;
-  protected $session_id;
-  protected $authenticity_token;
-  protected $login_state = false;   // true => logged in
-  protected $application_name;
-  protected $user_agent;
-  protected $connect_timeout = 20;
-  protected $request_timeout = 20;
-  protected $verify_peer = true;    // false is not correct for Production use.
+  protected $curl_handle = NULL;
+  protected $curl_options = NULL;
+  protected $logger_callback = NULL;
+  protected $session_id = NULL;
+  protected $username = NULL;
+  protected $logical_database_id = NULL;
+  protected $authenticity_token = NULL;
+  protected $api_logging_key = NULL; // when available requests server-side logging of API requests/responses
+  protected $api_logging_seq = 0;    // used for server-side logging of API requests/responses
+  protected $login_state = false;    // true => logged in
+  protected $auto_logout = true;     // true => call logout() in destroy hook
+  protected $application_name = NULL;
+  protected $user_agent = NULL;
+  protected $connect_timeout = 120;  // 2 minutes
+  protected $request_timeout = 120;
+  protected $verify_peer = true;     // false is not correct for Production use.
   protected $service = 'https://secure.workbooks.com';
-  protected $last_request_duration;
+  protected $last_request_duration = NULL;
+  protected $user_queues = NULL;     // when logged in contains an array of user queues
 
   /**
    * Those HTTP status codes of particular significance to the API.
@@ -126,6 +137,10 @@ class WorkbooksApi
    *       string arguments: msg and level.  In the absence of a logger_callback, no logging is done by this library.
    *       WorkbooksApi::logAllToStdout() is provided as an example: pass
    *         array('Workbooks', 'logAllToStdout').
+   *   - username: the user to login with
+   *   - session_id: a sessionID to reconnect to
+   *   - logical_database_id: the databaseID which the session_id is associated with
+   *   - api_logging_key: if specified this is used to identify a Process Log to attach API logging records to
    *   - connect_timeout: how long to wait for a connection to be established in seconds (default: 20)
    *   - request_timeout: how long to wait for a response in seconds (default: 20)
    *   - verify_peer: whether to verify the peer's SSL certificate. Set this to false for some test environments but do not 
@@ -162,6 +177,23 @@ class WorkbooksApi
       $this->setRequestTimeout($params['request_timeout']);
     }
     
+    if (isset($params['username'])) {
+      $this->setUsername($params['username']);
+    }
+    
+    if (isset($params['session_id'])) {
+      $this->setSessionId($params['session_id']);
+    }
+    
+    if (isset($params['logical_database_id'])) {
+      $this->setLogicalDatabaseId($params['logical_database_id']);
+    }
+    
+    if (isset($params['api_logging_key'])) {
+      $this->setApiLoggingKey($params['api_logging_key']);
+      $this->resetApiLoggingSeq();
+    }
+    
     if (isset($params['verify_peer'])) {
       $this->setVerifyPeer($params['verify_peer']);
     }
@@ -181,10 +213,16 @@ class WorkbooksApi
   }
   
   /**
-   * Shutdown the Workbooks API. This will happen automatically when it goes out of scope.
+   * Shutdown the Workbooks API. Logout will happen automatically when this goes out of scope 
+   * unless you call setAutoLogout to change its behaviour.
    */
   public function __destruct() {
-    $this->destroyCurlHandle();
+    if (isset($this->curl_handle)){
+      if ($this->getLoginState() && $this->getAutoLogout()) {
+        $this->logout();
+      }
+      $this->destroyCurlHandle();
+    }
   }
 
   /**
@@ -236,6 +274,25 @@ class WorkbooksApi
   }
 
   /**
+   * Set the user_queues list.
+   *
+   * @param Array $user_queues - an array of queues as returned at login time
+   */
+  protected function setUserQueues(&$user_queues) {
+    $this->user_queues = $user_queues;
+    return $user_queues;
+  }
+  
+  /**
+   * Get the user_queues list.
+   *
+   * @return Array $user_queues - an array of queues as returned at login time
+   */
+  public function getUserQueues() {
+    return $this->user_queues;
+  }
+
+  /**
    * Set the application name.
    *
    * @param String $application_name the application name
@@ -280,6 +337,9 @@ class WorkbooksApi
    */
   public function setConnectTimeout($connect_timeout) {
     $this->connect_timeout = $connect_timeout;
+    if ($this->curl_handle != NULL) {
+      curl_setopt($this->curl_handle, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
+    }
     return $this;
   }
 
@@ -299,6 +359,9 @@ class WorkbooksApi
    */
   public function setRequestTimeout($request_timeout) {
     $this->request_timeout = $request_timeout;
+    if ($this->curl_handle != NULL) {
+      curl_setopt($this->curl_handle, CURLOPT_TIMEOUT, $request_timeout);
+    }
     return $this;
   }
 
@@ -309,6 +372,85 @@ class WorkbooksApi
    */
   public function getRequestTimeout() {
     return $this->request_timeout;
+  }
+
+  /**
+   * Set the user name used to login/reconnect.
+   *
+   * @param String $username the login name
+   */
+  public function setUsername($username) {
+    $this->username = $username;
+    return $this;
+  }
+
+  /**
+   * Get the user name used to login/reconnect.
+   *
+   * @return String $username the login name
+   */
+  public function getUsername() {
+    return $this->username;
+  }
+
+  /**
+   * Set the logical database ID used to login/reconnect.
+   *
+   * @param Integer $logical_database_id the ID of the database the session is associated with
+   */
+  public function setLogicalDatabaseId($logical_database_id) {
+    $this->logical_database_id = $logical_database_id;
+    return $this;
+  }
+
+  /**
+   * Get the logical database ID used to login/reconnect.
+   *
+   * @return Integer $logical_database_id the ID of the database the session is associated with
+   */
+  public function getLogicalDatabaseId() {
+    return $this->logical_database_id;
+  }
+
+  /**
+   * Set the API logging key: this is used to associate API request/response log 
+   * records with the log for an invocation of a Process. Only useful when running
+   * within the Process Engine environment.
+   *
+   * @param String $api_logging_key the API logging key
+   */
+  public function setApiLoggingKey($api_logging_key) {
+    $this->api_logging_key = $api_logging_key;
+    return $this;
+  }
+
+  /**
+   * Get the API logging key.
+   *
+   * @return String the API logging key
+   */
+  public function getApiLoggingKey() {
+    return $this->api_logging_key;
+  }
+  
+  /**
+   * Reset the API logging sequence number which is used in conjunction with API request/response
+   * log records. Only useful when running within the Process Engine environment. Each request
+   * gets a new sequence number.
+   */
+  public function resetApiLoggingSeq() {
+    $this->api_logging_seq = 0;
+    return $this;
+  }
+
+  /**
+   * Get the next API logging sequence number.
+   *
+   * @return Integer the API logging sequence number
+   */
+  public function nextApiLoggingSeq() {
+    $this->api_logging_seq++;
+    return $this->api_logging_seq;
   }
   
   /**
@@ -368,6 +510,26 @@ class WorkbooksApi
   public function getLoginState() {
     return $this->login_state;
   }
+  
+  /**
+   * Set the auto_logout flag.
+   *
+   * @param Boolean $auto_logout true to logout automatically, false to leave the session
+   */
+  public function setAutoLogout($auto_logout) {
+    $this->auto_logout = $auto_logout;
+    return $this;
+  }
+  
+  /**
+   * Get the auto_logout flag.
+   *
+   * @return Boolean $auto_logout true to logout automatically, false to leave the session
+   */
+  public function getAutoLogout() {
+    return $this->auto_logout;
+  }
+
   
   /**
    * Set the Authenticity Token. This is unique to each session.
@@ -444,7 +606,7 @@ class WorkbooksApi
         $msg .= ' «' . var_export($expression, true) . '»';
       }
 
-      call_user_func($this->logger_callback, $msg, $level);
+      call_user_func($this->logger_callback, &$msg, $level);
     }
   }
   
@@ -453,9 +615,20 @@ class WorkbooksApi
    * @param String $msg a string to be logged
    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
    */
-   public function logAllToStdout($msg, $level) {
-     echo '[' . $level .'] ' . $msg . "\n";
+   public function logAllToStdout(&$msg, $level) {
+     echo "\n\n[" . $level .'] ' . $msg . "\n\n";
    }
+
+   /**
+    * A sample logger, this one passes all messages to stdout and flushes the buffer
+    * @param String $msg a string to be logged
+    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
+    */
+    public function logAllToStdoutAndFlush(&$msg, $level) {
+      self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level);
+      // Now flush the output buffer
+      ob_flush();
+    }
    
   /**
    * Helper function which evaluates a response to determine how successful it was
@@ -465,7 +638,7 @@ class WorkbooksApi
    *   'not-ok' - something in the request could not be satisfied; you should check the errors and warnings.
    *   'ok'     - completely successful.
    */
-   public function condensedStatus($response) {
+   public function condensedStatus(&$response) {
      $status = 'ok';
      if (!isset($response['success'])) {
        return 'failed'; // Unexpected failure - there should always be a 'success' element
@@ -487,14 +660,43 @@ class WorkbooksApi
      }
      return $status;
    }
-
+  
+  /**
+   * Check responses are expected. Raises an exception if the response is not.
+   * @param Array $response a response from the service API.
+   * @param String $expected the expected type of response, defaults to 'ok'.
+   * @param String $raise_on_error the exception to raise if the response is not as expected.
+   */
+  public function assertResponse(&$response, $expected='ok', $raise_on_error='Unexpected response from Workbooks API') {
+    $condensed_status = $this->condensedStatus($response);
+    if ($condensed_status != $expected) {
+      $this->log('Received an unexpected response', array ($condensed_status, $response, $expected));
+      throw new Exception($raise_on_error);
+    }
+  }
+  
+  /*
+   * Extract ids and lock_versions from the 'affected_objects' of the response and return them as an Array of Arrays.
+   * @param Array $response a response from the service API.
+   * @return Array a set of id and lock_version values, one per affected object.
+   */
+  public function idVersions(&$response) {
+    $retval = array();
+    foreach ($response['affected_objects'] as &$affected) {
+      $retval[]= array(
+        'id'           => $affected['id'], 
+        'lock_version' => $affected['lock_version'],
+      );
+    }
+    return $retval;
+  }
 
   /**
    * Login to the service to set up a session.
-   *   Mandatory settings
-   *   - username: The user's login name.
-   *   - password: The user's login password.
    *   Optional settings
+   *   - username: The user's login name (required if not set using setUsername).
+   *   - password: The user's login password. Either this or a session_id must be specified.
+   *   - session_id: The ID of a session to reconnect to. Either this or a password must be specified.
    *   - logical_database_id: The ID of a database to select - not required when the user has access to exactly one.
    *   others as defined in the API documentation (e.g. _time_zone, _strict_attribute_checking, _per_object_transactions).
    * @param Array $params credentials and other options to the login API endpoint.
@@ -511,36 +713,47 @@ class WorkbooksApi
     // $this->log('login() called with params', $params);
 
     if (empty($params['username'])) {
+      $params['username'] = $this->getUsername();
+    }
+    if (empty($params['username'])) {
       throw new Exception('A username must be supplied');
     }
-    if (empty($params['password'])) {
-      throw new Exception('A password must be supplied');
+    
+    if (empty($params['password']) && empty($params['session_id'])) {
+      $params['session_id'] = $this->getSessionId();
+    }
+    if (empty($params['password']) && empty($params['session_id'])) {
+      throw new Exception('A password or session_id must be supplied');
+    }
+
+    if (empty($params['logical_database_id'])) {
+      $params['logical_database_id'] = $this->getLogicalDatabaseId();
     }
 
     // These default settings can be overridden by the caller.
     $params = array_merge(array(
         '_application_name'          => $this->getApplicationName(),
-        'client'                     => 'api',
         'json'                       => 'pretty',
         '_strict_attribute_checking' => true,
     ), $params);
     
     $sr = self::makeRequest('login.api', 'POST', $params);
-    $http_status = $sr['http_status'];
+    $http_status =& $sr['http_status'];
     $response = json_decode($sr['http_body'], true);
     
     // The authenticity_token is valid for a specific session and is required when any modifications are attempted.
     if ($http_status == WorkbooksApi::HTTP_STATUS_OK) {
       $this->setLoginState(true);
+      $this->setUserQueues($response['my_queues']);
       $this->setAuthenticityToken($response['authenticity_token']);
     }
     
     $retval = array(
       'http_status'     => $http_status, 
-      'failure_message' => $response['failure_message'], 
+      'failure_message' => is_array($response) && array_key_exists('failure_message', $response) ? $response['failure_message'] : '',
       'response'        => $response
     );
-    $this->log('login() returns', $retval, 'info');
+    // $this->log('login() returns', $retval, 'info');
     return $retval;
   }
 
@@ -557,8 +770,8 @@ class WorkbooksApi
     $this->setLoginState(false); // force a login regardless of the server-side state
     $this->setAuthenticityToken(NULL);
     
-    $http_status = $sr['http_status'];
-    $response = $sr['http_body'];
+    $http_status =& $sr['http_status'];
+    $response =& $sr['http_body'];
     $success = ($http_status == WorkbooksApi::HTTP_STATUS_FOUND) ? true : false; 
 
     $retval = array(
@@ -566,7 +779,7 @@ class WorkbooksApi
       'http_status'     => $http_status, 
       'response'        => $response
     );
-    $this->log('logout() returns', $retval, 'info');
+    // $this->log('logout() returns', $retval, 'info');
     return $retval;
   }
 
@@ -594,7 +807,16 @@ class WorkbooksApi
     $array_param_string = implode("&", $array_params);
     return $this->apiCall($endpoint, 'GET', $params, $array_param_string, $decode_json);
   }
-  
+
+  /**
+   * Interface as per get() but if the response is not 'ok' it also logs an error and raises an exception.
+   */
+  public function assertGet($endpoint, $params, $decode_json=true) {
+     $response = $this->get($endpoint, $params, $decode_json);
+     $this->assertResponse($response);
+     return $response;
+  }
+
   /**
    * Make a request to an endpoint on the service to create objects. You must have logged in first.
    *
@@ -607,8 +829,17 @@ class WorkbooksApi
    *
    * As usual, check the API documentation for further information.
    */
-  public function create($endpoint, $objs, $params=array(), $method='none') {
+  public function create($endpoint, &$objs, $params=array(), $method='none') {
     return $this->batch($endpoint, $objs, $params, 'CREATE');
+  }
+
+  /**
+   * Interface as per create() but if the response is not 'ok' it also logs an error and raises an exception.
+   */
+  public function assertCreate($endpoint, &$objs, $params=array(), $method='none') {
+     $response = $this->create($endpoint, $objs, $params, $method);
+     $this->assertResponse($response);
+     return $response;
   }
 
   /**
@@ -624,8 +855,17 @@ class WorkbooksApi
    *
    * As usual, check the API documentation for further information.
    */
-  public function update($endpoint, $objs, $params=array(), $method='none') {
+  public function update($endpoint, &$objs, $params=array(), $method='none') {
     return $this->batch($endpoint, $objs, $params, 'UPDATE');
+  }
+
+  /**
+   * Interface as per update() but if the response is not 'ok' it also logs an error and raises an exception.
+   */
+  public function assertUpdate($endpoint, &$objs, $params=array(), $method='none') {
+     $response = $this->update($endpoint, $objs, $params, $method);
+     $this->assertResponse($response);
+     return $response;
   }
 
   /**
@@ -640,8 +880,17 @@ class WorkbooksApi
    *
    * As usual, check the API documentation for further information.
    */
-  public function delete($endpoint, $objs, $params=array(), $method='none') {
+  public function delete($endpoint, &$objs, $params=array(), $method='none') {
     return $this->batch($endpoint, $objs, $params, 'DELETE');
+  }
+
+  /**
+   * Interface as per delete() but if the response is not 'ok' it also logs an error and raises an exception.
+   */
+  public function assertDelete($endpoint, &$objs, $params=array(), $method='none') {
+     $response = $this->delete($endpoint, $objs, $params, $method);
+     $this->assertResponse($response);
+     return $response;
   }
 
   /**
@@ -660,37 +909,63 @@ class WorkbooksApi
    *
    * As usual, check the API documentation for further information.
    */
-  public function batch($endpoint, $objs, $params=array(), $method='none') {
+  public function batch($endpoint, &$objs, $params=array(), $method='none') {
     // $this->log('batch() called with params', array($endpoint, $objs));
     
     // If just one object was passed in, turn it into an array.
-    if (!is_array($objs[0])) {
-      $objs = array(0 => $objs);
+    if (!array_key_exists(0, $objs)) {
+      $objs = array($objs);
     }  
 
     $filter_params = $this->encodeMethodParams($objs, $method);
     $encoded_post_params = $this->fullSquare($objs);
     $response = $this->apiCall($endpoint, 'PUT', $params, $filter_params . '&' . $encoded_post_params);
 
-    $this->log('batch() returns', $response, 'info');
+    // $this->log('batch() returns', $response, 'info');
     return $response;
   }
   
   /**
-   * Make a call to an endpoint on the service. You must have logged in first.
-   *
-   * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
-   * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
-   * @param Array $post_params optional set of parameters to add to the POST body.
-   * @param String $encoded_post_params optional additional parameters, this time url-encoded, to use for the POST body
-   * @param Boolean $decode_json whether to decode json
-   * @return Array the decoded json response if $decode_json is true (default), or the raw response if not.
-   * @throws WorkbooksApiException
-   *
-   * As usual, check the API documentation for further information.
+   * Interface as per batch() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function apiCall($endpoint, $method, $post_params=array(), $encoded_post_params='', $decode_json=true) {
-    $this->log('apiCall() called with params', array($endpoint, $method, $post_params, $encoded_post_params, $decode_json));
+  public function assertBatch($endpoint, &$objs, $params=array(), $method='none') {
+     $response = $this->batch($endpoint, $objs, $params, $method);
+     $this->assertResponse($response);
+     return $response;
+  }
+  
+  /**
+   * Ensure we are logged in; if not then reconnect to the service if possible.
+   */
+  protected function ensureLogin() {
+    if (!$this->getLoginState() && 
+        $this->getUsername() &&
+        $this->getSessionId() &&
+        $this->getLogicalDatabaseId()) {
+
+      /*
+       * Probably running under the Process Engine: the required values are all available. Do the login now.
+       * 
+       * A login failure results in its being logged in the Process Log and if the process is scheduled
+       * then it is queued to be retried later.
+       */
+
+      // Exit codes which mean something to the Workbooks Process Engine.
+      $exit_ok = 0;
+      $exit_retry = 1;
+
+      try {
+        $login_response = $this->login(array());
+        if ($login_response['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
+          $this->log('Workbooks connection unsuccessful.', $login_response['failure_message'], 'error');
+          exit($exit_retry); // retry later if the Action is scheduled
+        }
+      }
+      catch(Exception $e) {
+        $this->log('Workbooks connection unsuccessful', $e->getMessage(), 'error');
+          exit($exit_retry); // retry later if the Action is scheduled
+      }
+    }
     
     if ($this->getLoginState() == false) {
       $e = new WorkbooksApiException(array(
@@ -703,9 +978,29 @@ class WorkbooksApi
       $this->destroyCurlHandle();
       throw $e;        
     }
+  }
 
+  /**
+   * Make a call to an endpoint on the service, reconnecting to the session first if necessary if running beneath the Process Engine.
+   *
+   * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
+   * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
+   * @param Array $post_params optional set of parameters to add to the POST body.
+   * @param String $encoded_post_params optional additional parameters, this time url-encoded, to use for the POST body
+   * @param Boolean $decode_json whether to decode json
+   * @return Array the decoded json response if $decode_json is true (default), or the raw response if not.
+   * @throws WorkbooksApiException
+   *
+   * As usual, check the API documentation for further information.
+   */
+  public function apiCall($endpoint, $method, $post_params=array(), $encoded_post_params='', $decode_json=true) {
+    // $this->log('apiCall() called with params', array($endpoint, $method, $post_params, $encoded_post_params, $decode_json));
+
+    $this->ensureLogin();
+    
     // API calls are always to a '.api' endpoint; the caller does not have to include this.    
-    if (!preg_match('/\.api$/', $endpoint)) {
+    // Including ANY extension will prevent '.api' from being appended.
+    if (!preg_match('/\.\w{3,4}/', $endpoint)) {
       $endpoint .= '.api';
     }
 
@@ -717,7 +1012,7 @@ class WorkbooksApi
         'workbooks_api' => $this,
         'error_code'    => $http_status,
         'error'         => array(
-          'message'       => 'Non-OK response',
+          'message'       => 'Non-OK response (' . $http_status . ')',
           'type'          => 'WorkbooksServiceException',
           'response'      => $sr['response']
         ),
@@ -731,7 +1026,7 @@ class WorkbooksApi
     } else {
       $response = $sr['http_body'];
     }
-    
+
     // $this->log('apiCall() returns', $response, 'info');
     return $response;
   }
@@ -760,11 +1055,27 @@ class WorkbooksApi
     );
     $url = $this->getUrl($endpoint, $url_params);
 
-    $post_params = array_merge(array('_method' => strtoupper($method)), $post_params);
-    if ($method != 'GET' && $this->getAuthenticityToken()) {
-      $post_params = array_merge(array('_authenticity_token' => $this->getAuthenticityToken()), $post_params);
+    $post_params = array_merge(array(
+      '_method' => strtoupper($method),
+      'client'  => 'api',
+    ), $post_params);
+    
+    $api_logging_key = $this->getApiLoggingKey();
+    $api_logging_seq = $this->nextApiLoggingSeq();
+    if (isset($api_logging_key)) {
+      $post_params = array_merge(array(
+        'api_logging_key' => $api_logging_key,
+        'api_logging_seq' => $api_logging_seq,
+      ), $post_params);
     }
-    $http_query = http_build_query($post_params, null, '&');
+    
+    if ($method != 'GET' && $this->getAuthenticityToken()) {
+      $post_params = array_merge(array(
+         '_authenticity_token' => $this->getAuthenticityToken()
+      ), $post_params);
+    }
+    
+    $http_query = http_build_query($post_params, NULL, '&');
     if ($encoded_post_params != '') {
       $http_query .= '&' . $encoded_post_params; 
     }
@@ -788,8 +1099,15 @@ class WorkbooksApi
       curl_setopt($curl_handle, CURLOPT_COOKIE, $cookie);
     }
 
+    if (isset($api_logging_key)) {
+      $this->log($api_logging_seq, array($method, $endpoint), 'api_request');
+    }
     // Make the request, await the response. Timeouts as above.
     $curl_result_with_headers = curl_exec($curl_handle);
+    if (isset($api_logging_key)) {
+      $this->log($api_logging_seq, array($method, $endpoint), 'api_response');
+    }
+
     // $this->log('RESPONSE', $curl_result_with_headers);
     
     if ($curl_result_with_headers === false) {
@@ -797,7 +1115,7 @@ class WorkbooksApi
         'workbooks_api' => $this,
         'error_code'    => curl_errno($curl_handle),
         'error'         => array(
-          'message'       => curl_error($curl_handle),
+          'message'       => curl_error($curl_handle) . '(' . curl_errno($curl_handle) . ')',
           'type'          => 'CurlException'
         ),
       ));
@@ -809,7 +1127,7 @@ class WorkbooksApi
     list($headers, $body) = explode("\r\n\r\n", $curl_result_with_headers, 2); 
     //   HTTP/1.1 302 Found
     preg_match('/HTTP\/.* ([0-9]+) .*/', $headers, $status);
-    $http_status = intval($status[1]);
+    $http_status = (is_array($status) && (count($status) > 1)) ? intval($status[1]) : 0;
     
     if ($http_status == 0) {
       $e = new WorkbooksApiException(array(
@@ -829,12 +1147,12 @@ class WorkbooksApi
     // may be a different ID from the one the client may have just sent. 
     //   Set-Cookie: Workbooks-Session=7c67eba894177c768b4f0b84090704b7; path=/; secure; HttpOnly
     preg_match('/^Set-Cookie: Workbooks-Session=(.*?);/m', $headers, $session_cookie);
-    $this->setSessionId($session_cookie[1]);
+    $this->setSessionId((is_array($session_cookie) && (count($session_cookie) > 1)) ? $session_cookie[1]: '');
     
     $end_time = microtime(true);
     $this->setLastRequestDuration($end_time - $start_time);
     
-    $retval = array('http_status' => $http_status, 'http_body' => $body);
+    $retval = array('http_status' => $http_status, 'http_body' => &$body);
     // $this->log('makeRequest() returns', $retval);
     return $retval;
   }
@@ -999,11 +1317,11 @@ class WorkbooksApi
   protected function unnestKey($attribute_name) {
     // $this->log('unnestKey() called with param', $attribute_name);
     
-    # If it does not end in ']]' then it is not a nested key.
+    // If it does not end in ']]' then it is not a nested key.
     if (!preg_match('/\]\]$/', $attribute_name)) {
       return $attribute_name;
     }
-    # Otherwise it is nested: split and re-join
+    // Otherwise it is nested: split and re-join
     $parts = preg_split('/[\[\]]+/', $attribute_name, 0, PREG_SPLIT_NO_EMPTY);
     $retval= $parts[0] . '[' . join('][', array_slice($parts, 1)) . ']';
     
@@ -1018,7 +1336,7 @@ class WorkbooksApi
    * @param $query_params Array optional query params to append
    * @return String the URL for the given parameters
    */
-  protected function getUrl($path, $query_params=array()) {
+  protected function getUrl($path, &$query_params=array()) {
     // $this->log('getUrl() called with params', array($path, $query_params));
     
     $url = $this->getService();
@@ -1029,7 +1347,7 @@ class WorkbooksApi
     $url .= $path;
 
     if ($query_params) {
-      $url .= '?' . http_build_query($query_params, null, '&');
+      $url .= '?' . http_build_query($query_params, NULL, '&');
     }
     
     // $this->log('getUrl() returns', $url);
@@ -1037,5 +1355,37 @@ class WorkbooksApi
   }
 
 } // class Workbooks
+
+/*
+ * Initialise $workbooks if running under the Workbooks Process Engine and the right set
+ * of parameters are available to allow authentication using a session_id. If the Process
+ * Engine is not being used then you will need to build your own $workbooks using the
+ * constructor and login yourself.
+ */
+
+$workbooks = NULL;
+if (isset($params) && 
+    isset($params['_workbooks_client_name']) &&
+    isset($params['_workbooks_protocol']) &&
+    isset($params['_workbooks_username']) &&
+    isset($params['_workbooks_session_id']) &&
+    isset($params['_workbooks_logical_database_id']) &&
+    isset($params['_workbooks_api_logging_key'])) {
+
+  $workbooks = new WorkbooksApi(array(
+    'logger_callback'     => array('WorkbooksApi', 'logAllToStdoutAndFlush'),  // A noisy logger
+    'application_name'    => $params['_workbooks_client_name'],
+    'user_agent'          => $params['_workbooks_client_name'] . '/1.0',
+    'service'             => $params['_workbooks_protocol'] . '://'. $_SERVER['REMOTE_ADDR'],
+    'username'            => $params['_workbooks_username'],
+    'session_id'          => $params['_workbooks_session_id'],
+    'logical_database_id' => $params['_workbooks_logical_database_id'],
+    'api_logging_key'     => $params['_workbooks_api_logging_key'],
+    'verify_peer'         => false,
+  ));
+
+  // Turn output buffering on
+  ob_start();
+}
 
 ?>

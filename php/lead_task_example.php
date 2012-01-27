@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to create a lead and related task
  *   object via a thin PHP wrapper
  *
- *   Last commit $Id: lead_task_example.php 12114 2011-03-30 16:02:23Z jkay $
+ *   Last commit $Id: lead_task_example.php 14702 2011-11-11 21:13:05Z gbarlow $
  *
  *       The MIT License
  *
@@ -234,16 +234,6 @@ $response = $workbooks->create('activity/activity_links', $create_one_activity_l
 assert_response($workbooks, $response, 'ok');
 $activity_link_object_id_lock_versions = affected_object_id_versions($response);
  
-/*
- * Logout
- * Arguably testing for successful logout is a bit of a waste of effort...
- */
-$logout = $workbooks->logout();
-if (!$logout['success']) {
-  $workbooks->log('Logout failed.', $logout, 'error');
-  exit($exit_error);
-}
-
 exit($exit_ok);
 
 ?>
