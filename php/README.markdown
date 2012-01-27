@@ -4,7 +4,21 @@ See `simple_example.php` for some simple usage examples and explore the objects 
 
 ## Usage
 
-The Workbooks API is session-based. Session IDs are transferred in cookies. Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `setSessionId()` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
+The Workbooks API is session-based. 
+Workbooks API scripts are either hosted externally to the Workbooks service ("external scripts"), or are hosted by the Workbooks Process Engine ("process engine scripts").  
+
+External scripts need to establish a session manually whereas this is done automatically for process engine scripts.
+
+## Running under the Workbooks Process Engine
+
+The Process Engine will automatically create a login session for your script so you can skip the description of `new()`, `login()` and `logout()` below.
+Your script will be invoked from time to time by the service, typically through a user action or according to a schedule.
+Your script is passed the variable `$wb` which is an object representing a valid Workbooks session. 
+Using $wb you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`.
+
+## External Script Usage
+
+Session IDs are transferred in cookies. Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `setSessionId()` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
 
 Having obtained a session you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`.
 
@@ -16,7 +30,7 @@ Example:
 <code>
     require 'workbooks_api.php';
     
-    $workbooks = new WorkbooksApi(array(
+    $wb = new WorkbooksApi(array(
       'application_name'   => 'PHP test client',
       'user_agent'         => 'php_test_client/0.1'
     )
@@ -33,7 +47,7 @@ Example:
       'password' => 'passw0rd',
     );
     
-    $login = $workbooks->login($login_params);
+    $login = $wb->login($login_params);
     
     if ($login['http_status'] == WorkbooksApi::HTTP_STATUS_FORBIDDEN && $login['response']['failure_reason'] == 'no_database_selection_made') {
       /*
@@ -48,7 +62,7 @@ Example:
        * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice 
        * for all of their API clients.
        */
-      $login = $workbooks->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
+      $login = $wb->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
     }
     
     if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
@@ -62,8 +76,10 @@ _Logout from the service_
 
 Example:
 <code>
-    $logout = $workbooks->logout();
+    $logout = $wb->logout();
 </code>
+
+## Interacting with Workbooks
 
 ### get()
 
@@ -87,7 +103,7 @@ Example:
         'updated_by_user[person_name]',
       )
     );
-    $response = $workbooks->get('crm/organisations', $filter_limit_select);
+    $response = $wb->get('crm/organisations', $filter_limit_select);
 </code>
 
 ### create()
@@ -103,7 +119,7 @@ Example, creating a single organisation:
       'main_location[county_province_state]' => 'Oxfordshire',
       'main_location[town]'                  => 'Oxford',
     );
-    $response = $workbooks->create('crm/organisations', $create_one_organisation);
+    $response = $wb->create('crm/organisations', $create_one_organisation);
 </code>
 
 Or create several:
@@ -139,7 +155,7 @@ Or create several:
       ),
     );
 
-    $response = $workbooks->create('crm/organisations', $create_three_organisations);
+    $response = $wb->create('crm/organisations', $create_three_organisations);
 </code>
 
 ### update()
@@ -168,7 +184,7 @@ Example:
       ),
     );
 
-    $response = $workbooks->update('crm/organisations', $update_three_organisations);
+    $response = $wb->update('crm/organisations', $update_three_organisations);
 </code>
 
 ### delete()
@@ -183,7 +199,7 @@ Example:
         'lock_version'                         => $object_id_lock_versions[0]['lock_version'],
       )
     );
-    $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
+    $response = $wb->delete('crm/organisations', $object_id_lock_versions);
 </code>
 
 ### batch()
@@ -220,7 +236,7 @@ Example:
       ),
     );
 
-    $response = $workbooks->batch('crm/organisations', $batch_organisations);
+    $response = $wb->batch('crm/organisations', $batch_organisations);
 </code>
 
 ## Further Information
@@ -229,7 +245,7 @@ The API is documented at <a href="http://www.workbooks.com/api" target="_blank">
 
 ## Requirements
 
-This binding uses CURL and JSON PHP extensions. It should work on PHP 5.2 or later; it has been tested using PHP 5.2.4 on Ubuntu 8.04 and PHP 5.3.2 on Mac OS X 10.6.4.
+This binding uses CURL and JSON PHP extensions. It should work on PHP 5.2 or later; it has been tested using PHP 5.2.4 on Ubuntu 8.04 and PHP 5.3.2 on Mac OS X 10.6.4 and Ubuntu 10.04.
 
 ## License
 
@@ -237,7 +253,7 @@ Licensed under the MIT License
 
 > The MIT License
 > 
-> Copyright (c) 2008-2010, Workbooks Online Limited.
+> Copyright (c) 2008-2011, Workbooks Online Limited.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
