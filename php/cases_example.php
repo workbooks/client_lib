@@ -3,11 +3,11 @@
 /**
  *   A demonstration of using the Workbooks API to operate on Cases via a thin PHP wrapper.
  *
- *   Last commit $Id: cases_example.php 14702 2011-11-11 21:13:05Z gbarlow $
+ *   Last commit $Id: cases_example.php 16870 2012-07-17 12:16:43Z jkay $
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2010, Workbooks Online Limited.
+ *       Copyright (c) 2008-2012, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -30,97 +30,15 @@
 
 require 'workbooks_api.php';
 
-$exit_error = 1;
-$exit_ok = 0;
-
-/*
- * A couple of simple helper functions for this example script.
- */
- 
-/*
- * Check responses are expected. Exits if the response is not.
- */
-function assert_response($workbooks, $response, $expected='ok', $exit_on_error=1) {
-  $condensed_status = WorkbooksApi::condensedStatus($response);
-  if ($condensed_status != $expected) {
-    $workbooks->log('Received an unexpected response', array ($condensed_status, $response, $expected));
-    exit($exit_on_error);
-  }
-}
-
-/*
- * Extract ids and lock_versions from the 'affected_objects' in a response and return them as an Array of Arrays.
- */
-function affected_object_id_versions($response) {
-  $retval = array();
-  foreach ($response['affected_objects'] as &$affected) {
-    $retval[]= array(
-      'id'           => $affected['id'], 
-      'lock_version' => $affected['lock_version'],
-    );
-  }
-  return $retval;
-}
-
-
-/*
- * Initialise the Workbooks API object
- */
-$workbooks = new WorkbooksApi(array(
-  'application_name'   => 'php_cases_example',                   // Mandatory, should be the "human name" for the client
-  'user_agent'         => 'php_cases_example/0.1',               // Mandatory, should include version number
-  
-  // The following settings are used in Workbooks auto-test environment and are not typical.
-  'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
-  'connect_timeout'    => 120,                                   // Optional, defaults to 20 seconds
-  'request_timeout'    => 120,                                   // Optional, defaults to 20 seconds
-  'service'            => 'http://localhost:3000',               // Optional, defaults to the Production Workbooks service
-  'verify_peer'        => false,                                 // Optional, defaults to checking the peer SSL certificate
-));
-
-$workbooks->log('Running test script', __FILE__, 'info');
-
-/*
- * Connect to the service and login
- */
-$login_params = array(
-  'username' => 'james.kay@workbooks.com',
-//  'username' => 'apidemo@workbooks.com',
-  'password' => 'abc123',
-);
-
-$login = $workbooks->login($login_params);
-
-if ($login['http_status'] == WorkbooksApi::HTTP_STATUS_FORBIDDEN && $login['response']['failure_reason'] == 'no_database_selection_made') {
-  //$workbooks->log('Database selection required', $login, 'error');
-  
-  /*
-   * Multiple databases are available, and we must choose one. 
-   * A good UI might remember the previously-selected database or use $databases to present a list of databases for the user to choose from. 
-   */
-  $default_database_id = $login['response']['default_database_id'];
-  $databases = $login['response']['databases'];
-  
-  /*
-   * For this test script we simply select the one which was the default when the user last logged in to the Workbooks user interface. This 
-   * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice 
-   * for all of their API clients.
-   */
-  $login = $workbooks->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
-}
-
-if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
-  $workbooks->log('Login failed.', $login, 'error');
-  exit($exit_error);
-}
-
+/* If not running under the Workbooks Process Engine create a session */
+require 'test_login_helper.php';
 
 /*
  * We now have a valid logged-in session. This script does a series of 'CRUD' (Create, Read, Update, Delete) operations.
  */
 
 /*
- * 1. Find the CaseQueue to put the case on (we are looking for 'Unassigned').
+ * Find the CaseQueue to put the case on (we are looking for 'Unassigned').
  */
 $case_queue_filter_limit_select = array(
   '_ff[]'                => array('queue_type'),
@@ -132,24 +50,22 @@ $case_queue_filter_limit_select = array(
     'name',
   )
 );
-$response = $workbooks->get('crm/case_queues', $case_queue_filter_limit_select);
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet('crm/case_queues', $case_queue_filter_limit_select);
 $workbooks->log('Fetched objects', $response['data']);
 $unassigned_queue_id = $response['data'][0]['id'];
 
 
 /*
- * 2. Discover IDs for picklist entries.
+ * Discover IDs for picklist entries.
  *
  * Some items are picklists whose values can be configured by the customer. Those picklist IDs are listed in the 
  * API meta-data and these do not change.
  *
- * 2a. Case Priority: Medium
+ * Case Priority: Medium
  */
 $case_priority_picklist_id = 33;
 $case_priority_picklist_api = 'picklist_data/Private_PicklistEntry/id/value';
-$response = $workbooks->get($case_priority_picklist_api, array('picklist_id' => $case_priority_picklist_id));
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet($case_priority_picklist_api, array('picklist_id' => $case_priority_picklist_id));
 $workbooks->log('Fetched objects', $response['data']);
 foreach ($response['data'] as &$entry) {
   $case_priority_medium_id = $entry['id'];
@@ -159,12 +75,11 @@ foreach ($response['data'] as &$entry) {
 }
 
 /*
- * 2b. Case Source: Web
+ * Case Source: Web
  */
 $case_source_picklist_id = 36;
 $case_source_picklist_api = 'picklist_data/Private_PicklistEntry/id/value';
-$response = $workbooks->get($case_source_picklist_api, array('picklist_id' => $case_source_picklist_id));
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet($case_source_picklist_api, array('picklist_id' => $case_source_picklist_id));
 $workbooks->log('Fetched objects', $response['data']);
 foreach ($response['data'] as &$entry) {
   $case_source_web_id = $entry['id'];
@@ -174,27 +89,27 @@ foreach ($response['data'] as &$entry) {
 }
 
 /*
- * 2c. Case Status: New
+ * Case Status: 'New' and 'In progress'
  */
 $case_status_picklist_id = 35;
 $case_status_picklist_api = 'picklist_data/Private_PicklistEntry/id/value';
-$response = $workbooks->get($case_status_picklist_api, array('picklist_id' => $case_status_picklist_id));
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet($case_status_picklist_api, array('picklist_id' => $case_status_picklist_id));
 $workbooks->log('Fetched objects', $response['data']);
 foreach ($response['data'] as &$entry) {
-  $case_status_new_id = $entry['id'];
   if (preg_match("/NEW/i", $entry['value'])) {
-    break;
+    $case_status_new_id = $entry['id'];
+  }
+  if (preg_match("/IN PROGRESS/i", $entry['value'])) {
+    $case_status_in_progress_id = $entry['id'];
   }
 }
 
 /*
- * 2d. Case Type: General
+ * Case Type: General
  */
 $case_type_picklist_id = 37;
 $case_type_picklist_api = 'picklist_data/Private_PicklistEntry/id/value';
-$response = $workbooks->get($case_type_picklist_api, array('picklist_id' => $case_type_picklist_id));
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet($case_type_picklist_api, array('picklist_id' => $case_type_picklist_id));
 $workbooks->log('Fetched objects', $response['data']);
 foreach ($response['data'] as &$entry) {
   $case_type_general_id = $entry['id'];
@@ -204,12 +119,11 @@ foreach ($response['data'] as &$entry) {
 }
 
 /*
- * 2e. Case Product Category: Services
+ * Case Product Category: Services
  */
 $case_product_category_picklist_id = 5;
 $case_product_category_picklist_api = 'picklist_data/Private_PicklistEntry/id/value';
-$response = $workbooks->get($case_product_category_picklist_api, array('picklist_id' => $case_product_category_picklist_id));
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet($case_product_category_picklist_api, array('picklist_id' => $case_product_category_picklist_id));
 $workbooks->log('Fetched objects', $response['data']);
 foreach ($response['data'] as &$entry) {
   $case_product_category_services_id = $entry['id'];
@@ -219,9 +133,9 @@ foreach ($response['data'] as &$entry) {
 }
 
 /*
- * 3. Find someone with the surname 'Dean' and a phone number starting '020'. In reality if the case contact were not found you
- *    would create a new Person (see people_example.php). Here we just select a few columns to retrieve and take the first matching
- *    entry.
+ * Find someone with the surname 'Dean' and a phone number starting '020'. In reality if the case contact were not found you
+ * would create a new Person (see people_example.php). Here we just select a few columns to retrieve and take the first matching
+ * entry.
  */
 $filter_limit_select = array(
   '_start'               => '0',                                                    // Starting from the 'zeroth' record
@@ -238,15 +152,14 @@ $filter_limit_select = array(
     'main_location[email]',
   )
 );
-$response = $workbooks->get('crm/people', $filter_limit_select);
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet('crm/people', $filter_limit_select);
 $workbooks->log('Fetched objects', $response['data']);
 $contact_id = $response['data'][0]['id'];
 $contact_phone = $response['data'][0]['main_location[telephone]'];
 $contact_email = $response['data'][0]['main_location[email]'];
 
 /*
- * 4. Let's create a case now we have everything we want to know.
+ * Let's create a case now we have everything we want to know.
  */
 $create_one_case = array(
   'assigned_to'           => $unassigned_queue_id,                                    // 'Unassigned' CaseQueue ID as retrieved above
@@ -262,19 +175,30 @@ $create_one_case = array(
   'product_category_id'   => $case_product_category_services_id                       // From picklist as retrieved above: 'Services'
 );
 
-$response = $workbooks->create('crm/cases', $create_one_case);
-assert_response($workbooks, $response, 'ok');
-$case_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('crm/cases', $create_one_case);
+$case_object_id_lock_versions = $workbooks->idVersions($response);
 $case_reference = $response['affected_objects'][0]['object_ref'];
 $workbooks->log('Created case, reference', $case_reference);
 
 /*
- * 5. Delete the case which was created in this script
+ * Update the case
  */
-$response = $workbooks->delete('crm/cases', $case_object_id_lock_versions);
-assert_response($workbooks, $response, 'ok');
+$update_case = array (
+    'id'                                   => $case_object_id_lock_versions[0]['id'],
+    'lock_version'                         => $case_object_id_lock_versions[0]['lock_version'],
+    'case_status_id'                       => $case_status_in_progress_id,
+);
 
-exit($exit_ok);
+$response = $workbooks->assertUpdate('crm/cases', $update_case);
+$case_object_id_lock_versions = $workbooks->idVersions($response);
+$workbooks->log('Updated case status', $response);
+
+/*
+ * Delete the case which was created in this script
+ */
+$response = $workbooks->assertDelete('crm/cases', $case_object_id_lock_versions);
+
+testExit($workbooks);
 
 ?>
 

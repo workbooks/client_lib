@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 15322 2012-01-23 12:25:33Z swhitehouse $
+ *   Last commit $Id: workbooks_api.php 16294 2012-05-18 15:45:04Z jkay $
  *
  *       The MIT License
  *
@@ -606,7 +606,7 @@ class WorkbooksApi
         $msg .= ' «' . var_export($expression, true) . '»';
       }
 
-      call_user_func($this->logger_callback, &$msg, $level);
+      call_user_func($this->logger_callback, $msg, $level);
     }
   }
   
@@ -615,7 +615,7 @@ class WorkbooksApi
    * @param String $msg a string to be logged
    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
    */
-   public function logAllToStdout(&$msg, $level) {
+   public function logAllToStdout($msg, $level) {
      echo "\n\n[" . $level .'] ' . $msg . "\n\n";
    }
 
@@ -624,10 +624,17 @@ class WorkbooksApi
     * @param String $msg a string to be logged
     * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
     */
-    public function logAllToStdoutAndFlush(&$msg, $level) {
+    public function logAllToStdoutAndFlush($msg, $level) {
       self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level);
       // Now flush the output buffer
       ob_flush();
+    }
+
+   /**
+    * Helper function to send headers when running as a Web Process. 
+    */    
+    public function header($str) {
+      echo "\n\n[header] {$str}\n\n";
     }
    
   /**
@@ -1182,8 +1189,9 @@ class WorkbooksApi
       switch (strtoupper($obj_method)) {
         case 'CREATE':
           $obj['__method'] = 'POST';
-          // Must not specify a current id and lock_version
-          if (isset($obj['id']) || isset($obj['lock_version'])) {
+          // Must not specify a current id and lock_version (or if you do they should both be zero)
+          if ((isset($obj['id']) && $obj['id'] <> 0) || 
+              (isset($obj['lock_version']) && $obj['lock_version'] <> 0)) {
             throw new WorkbooksApiException(array(
               'workbooks_api' => $this,
               'error'         => array(
@@ -1383,6 +1391,23 @@ if (isset($params) &&
     'api_logging_key'     => $params['_workbooks_api_logging_key'],
     'verify_peer'         => false,
   ));
+
+  // Setup PHP special arrays: $_SERVER, $_GET, $_POST, $_COOKIE.
+  $_POST = array();
+  foreach(array_keys($params) as $k) {
+    if (preg_match('/^_server_(.*)/m', $k, $var_name)) {
+      $_SERVER[$var_name[1]] = $params[$k];
+    }
+    if (preg_match('/^_query_(.*)/m', $k, $var_name)) {
+      $_GET[$var_name[1]] = $params[$k];
+    }
+    if (preg_match('/^_post_(.*)/m', $k, $var_name)) {
+      $_POST[$var_name[1]] = $params[$k];
+    }
+    if (preg_match('/^_cookie_(.*)/m', $k, $var_name)) {
+      $_COOKIE[$var_name[1]] = $params[$k];
+    }
+  } // foreach $params
 
   // Turn output buffering on
   ob_start();

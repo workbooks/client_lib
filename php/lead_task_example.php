@@ -4,11 +4,11 @@
  *   A demonstration of using the Workbooks API to create a lead and related task
  *   object via a thin PHP wrapper
  *
- *   Last commit $Id: lead_task_example.php 14702 2011-11-11 21:13:05Z gbarlow $
+ *   Last commit $Id: lead_task_example.php 16854 2012-07-13 12:51:16Z jkay $
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2010, Workbooks Online Limited.
+ *       Copyright (c) 2008-2012, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -31,97 +31,15 @@
 
 require 'workbooks_api.php';
 
-$exit_error = 1;
-$exit_ok = 0;
+/* If not running under the Workbooks Process Engine create a session */
+require 'test_login_helper.php';
 
 /*
- * A couple of simple helper functions for this example script.
- */
- 
-/*
- * Check responses are expected. Exits if the response is not.
- */
-function assert_response($workbooks, $response, $expected='ok', $exit_on_error=1) {
-  $condensed_status = WorkbooksApi::condensedStatus($response);
-  if ($condensed_status != $expected) {
-    $workbooks->log('Received an unexpected response', array ($condensed_status, $response, $expected));
-    exit($exit_on_error);
-  }
-}
-
-/*
- * Extract ids and lock_versions from the 'affected_objects' in a response and return them as an Array of Arrays.
- */
-function affected_object_id_versions($response) {
-  $retval = array();
-  foreach ($response['affected_objects'] as &$affected) {
-    $retval[]= array(
-      'id'           => $affected['id'], 
-      'lock_version' => $affected['lock_version'],
-    );
-  }
-  return $retval;
-}
-
-
-/*
- * Initialise the Workbooks API object
- */
-$workbooks = new WorkbooksApi(array(
-  'application_name'   => 'PHP lead_activity test client',       // Mandatory, should be the "human name" for the client
-  'user_agent'         => 'php_lead_activity_test_client/0.1',   // Mandatory, should include version number
-  
-  // The following settings are used in Workbooks auto-test environment and are not typical.
-  'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
-  'connect_timeout'    => 120,                                   // Optional, defaults to 20 seconds
-  'request_timeout'    => 120,                                   // Optional, defaults to 20 seconds
-  'service'            => 'http://localhost:3000',               // Optional, defaults to the Production Workbooks service
-  'verify_peer'        => false,                                 // Optional, defaults to checking the peer SSL certificate
-));
-
-$workbooks->log('Running test script', __FILE__, 'info');
-
-/*
- * Connect to the service and login
- */
-$login_params = array(
-  'username' => 'james.kay@workbooks.com',
-//  'username' => 'apidemo@workbooks.com',
-  'password' => 'abc123',
-);
-
-$login = $workbooks->login($login_params);
-
-if ($login['http_status'] == WorkbooksApi::HTTP_STATUS_FORBIDDEN && $login['response']['failure_reason'] == 'no_database_selection_made') {
-  //$workbooks->log('Database selection required', $login, 'error');
-  
-  /*
-   * Multiple databases are available, and we must choose one. 
-   * A good UI might remember the previously-selected database or use $databases to present a list of databases for the user to choose from. 
-   */
-  $default_database_id = $login['response']['default_database_id'];
-  $databases = $login['response']['databases'];
-  
-  /*
-   * For this test script we simply select the one which was the default when the user last logged in to the Workbooks user interface. This 
-   * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice 
-   * for all of their API clients.
-   */
-  $login = $workbooks->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
-}
-
-if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
-  $workbooks->log('Login failed.', $login, 'error');
-  exit($exit_error);
-}
-
-
-/*
- * We now have a valid logged-in session. This script creates a single Lead, an associated Task, a Person and an Organisation.
+ * We now have a valid logged-in session. This script does a series of 'CRUD' (Create, Read, Update, Delete) operations.
  */
 
 /*
- * 1. Create a Lead
+ * Create a Lead
  */
 $create_one_sales_lead = array(
   'created_through_reference'                => '2345',
@@ -133,13 +51,12 @@ $create_one_sales_lead = array(
   'person_lead_party[name]'                  => 'Samuel Stevens',
 );
 
-$response = $workbooks->create('crm/sales_leads', $create_one_sales_lead);
-assert_response($workbooks, $response, 'ok');
-$sales_lead_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('crm/sales_leads', $create_one_sales_lead);
+$sales_lead_object_id_lock_versions = $workbooks->idVersions($response);
 $lead_id = $sales_lead_object_id_lock_versions[0]['id'];
 
 /*
- * 2. Create an organisation.
+ * Create an organisation.
  */
 $create_one_organisation = array(
   'created_through_reference'            => '56789',
@@ -156,13 +73,12 @@ $create_one_organisation = array(
   'website'                              => 'http://www.salemproducts.ltd.uk/',
 );
 
-$response = $workbooks->create('crm/organisations', $create_one_organisation);
-assert_response($workbooks, $response, 'ok');
-$organisation_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('crm/organisations', $create_one_organisation);
+$organisation_object_id_lock_versions = $workbooks->idVersions($response);
 $organisation_id = $organisation_object_id_lock_versions[0]['id'];
 
 /*
- * 3. Create a person working for that organisation
+ * Create a person working for that organisation
  */
 $create_one_person = array(
   'created_through_reference'            => '56901',
@@ -174,13 +90,12 @@ $create_one_person = array(
   'person_job_title'                     => 'Product Development Director',
 );
 
-$response = $workbooks->create('crm/people', $create_one_person);
-assert_response($workbooks, $response, 'ok');
-$person_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('crm/people', $create_one_person);
+$person_object_id_lock_versions = $workbooks->idVersions($response);
 $person_id = $person_object_id_lock_versions[0]['id'];
 
 /*
- * 4. Find the ActivityQueue to put the task on (we are looking for 'Unassigned')
+ * Find the ActivityQueue to put the task on (we are looking for 'Unassigned')
  */
 $activity_queue_filter_limit_select = array(
   '_ff[]'                => array('queue_type'),
@@ -192,13 +107,12 @@ $activity_queue_filter_limit_select = array(
     'name',
   )
 );
-$response = $workbooks->get('activity/activity_queues', $activity_queue_filter_limit_select);
-assert_response($workbooks, $response, 'ok');
+$response = $workbooks->assertGet('activity/activity_queues', $activity_queue_filter_limit_select);
 $workbooks->log('Fetched objects', $response['data']);
 $unassigned_queue_id = $response['data'][0]['id'];
 
 /*
- * 5. Create a Task.
+ * Create a Task.
  */
 $create_one_task = array(
   'activity_priority'                         => 'Medium',
@@ -215,13 +129,12 @@ $create_one_task = array(
   'reminder_enabled'                          => true,
 );
 
-$response = $workbooks->create('activity/tasks', $create_one_task);
-assert_response($workbooks, $response, 'ok');
-$task_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('activity/tasks', $create_one_task);
+$task_object_id_lock_versions = $workbooks->idVersions($response);
 $task_id = $task_object_id_lock_versions[0]['id'];
 
 /*
- * 6. Link the Task to the Lead
+ * Link the Task to the Lead
  */
 $create_one_activity_link = array(
   'activity_id'                               => $task_id,
@@ -230,11 +143,9 @@ $create_one_activity_link = array(
   'resource_type'                             => 'Private::Crm::SalesLead',
 );
 
-$response = $workbooks->create('activity/activity_links', $create_one_activity_link);
-assert_response($workbooks, $response, 'ok');
-$activity_link_object_id_lock_versions = affected_object_id_versions($response);
+$response = $workbooks->assertCreate('activity/activity_links', $create_one_activity_link);
  
-exit($exit_ok);
+testExit($workbooks);
 
 ?>
 

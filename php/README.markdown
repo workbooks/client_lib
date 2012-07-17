@@ -7,14 +7,14 @@ See the Script Library within Workbooks itself and `simple_example.php` for some
 The Workbooks API is session-based. 
 Workbooks API scripts are either hosted externally to the Workbooks service ("external scripts"), or are hosted by the Workbooks Process Engine ("process engine scripts").  
 
-External scripts need to establish a session manually whereas this is done automatically for process engine scripts.
+External scripts need to establish a session manually whereas this is done automatically for process engine scripts. In the examples here this is done in `test_login_helper.php` so that they can run outside the process engine.
 
 ## Running under the Workbooks Process Engine
 
 The Process Engine will automatically create a login session for your script so you can skip the description of `new()`, `login()` and `logout()` below.
 Your script will be invoked from time to time by the service, typically through a user action or according to a schedule.
 Alongside its parameters your script is passed the variable `$workbooks` which is an object representing a valid Workbooks session. 
-Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`. You can also call equivalent methods which check the response and raise an exception if it is not expected: see `assertGet()`, `assertCreate()`, `assertUpdate()`, `assertDelete()`, `assertBatch()`.
+Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`. You should normally call equivalent methods which check the response and raise an exception if it is not expected: these are `assertGet()`, `assertCreate()`, `assertUpdate()`, `assertDelete()`, `assertBatch()`.
 
 ## External Script Usage
 
@@ -81,7 +81,7 @@ Example:
 
 ## Interacting with Workbooks
 
-### get()
+### assertGet(), get()
 
 _Get a list of objects, or show a single object_
 
@@ -103,10 +103,11 @@ Example:
         'updated_by_user[person_name]',
       )
     );
-    $response = $workbooks->get('crm/organisations', $filter_limit_select);
+    $response = $workbooks->assertGet('crm/organisations', $filter_limit_select);
+    // or: $response = $workbooks->get('crm/organisations', $filter_limit_select);
 </code>
 
-### create()
+### assertCreate(), create()
 
 _Create one or more objects_
 
@@ -119,7 +120,8 @@ Example, creating a single organisation:
       'main_location[county_province_state]' => 'Oxfordshire',
       'main_location[town]'                  => 'Oxford',
     );
-    $response = $workbooks->create('crm/organisations', $create_one_organisation);
+    $response = $workbooks->assertCreate('crm/organisations', $create_one_organisation);
+    // or: $response = $workbooks->create('crm/organisations', $create_one_organisation);
 </code>
 
 Or create several:
@@ -155,10 +157,11 @@ Or create several:
       ),
     );
 
-    $response = $workbooks->create('crm/organisations', $create_three_organisations);
+    $response = $workbooks->assertCreate('crm/organisations', $create_three_organisations);
+    // or: $response = $workbooks->create('crm/organisations', $create_three_organisations);
 </code>
 
-### update()
+### assertUpdate(), update()
 
 _Update one or more objects_
 
@@ -184,10 +187,11 @@ Example:
       ),
     );
 
-    $response = $workbooks->update('crm/organisations', $update_three_organisations);
+    $response = $workbooks->assertUpdate('crm/organisations', $update_three_organisations);
+    // or: $response = $workbooks->update('crm/organisations', $update_three_organisations);
 </code>
 
-### delete()
+### assertDelete(), delete()
 
 _Delete one or more objects_
 
@@ -199,10 +203,11 @@ Example:
         'lock_version'                         => $object_id_lock_versions[0]['lock_version'],
       )
     );
-    $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
+    $response = $workbooks->assertDelete('crm/organisations', $object_id_lock_versions);
+    // or: $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
 </code>
 
-### batch()
+### assertBatch(), batch()
 
 _Create, update, and delete several objects together_
 
@@ -236,7 +241,22 @@ Example:
       ),
     );
 
-    $response = $workbooks->batch('crm/organisations', $batch_organisations);
+    $response = $workbooks->assertBatch('crm/organisations', $batch_organisations);
+    // or: $response = $workbooks->batch('crm/organisations', $batch_organisations);
+</code>
+
+### idVersion()
+
+_Extract ID and LockVersion from response_
+
+You need the ID and LockVersion in order to manipulate records. `idVersion()` is often done after an update or create operation.
+Example:
+<code>
+    // Apply some changes
+    $response = $workbooks->assertBatch('crm/organisations', $batch_organisations);
+    $object_id_lock_versions = $workbooks->idVersions($response);
+    // Delete all those records!
+    $response = $workbooks->assertDelete('crm/organisations', $object_id_lock_versions);
 </code>
 
 ## Further Information
