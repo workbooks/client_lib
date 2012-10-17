@@ -13,7 +13,7 @@ External scripts can authenticate using an API Key or a username and password. A
 The Process Engine will automatically create a login session for your script so you can skip the description of `new()`, `login()` and `logout()` below.
 Your script will be invoked from time to time by the service, typically through a user action or according to a schedule.
 Alongside its parameters your script is passed the variable `$workbooks` which is an object representing a valid Workbooks session. 
-Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`. You should normally call equivalent methods which check the response and raise an exception if it is not expected: these are `assertGet()`, `assertCreate()`, `assertUpdate()`, `assertDelete()`, `assertBatch()`.
+Using `$workbooks` you can call methods such as `get()`, `create()`, `update()`, `delete()`, `batch()`. You should normally call equivalent methods which check the response and raise an exception if it is not expected: these are `assertGet()`, `assertCreate()`, `assertUpdate()`, `assertDelete()`, `assertBatch()`.
 
 ## External Script Usage
 
@@ -21,7 +21,7 @@ There are several ways for external scripts to authenticate with Workbooks. Most
 
 ### Using API Keys without a Session
 
-Simply invoke `new()` and pass an API Key to create a Workbooks API object and then you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions.
+Simply invoke `new()` and pass an API Key to create a Workbooks API object and then you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions. Using session-based authentication (as described below) is more efficient if you are going to issue multiple API calls.
 
 ### Using login() and logout()
 
