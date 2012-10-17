@@ -17,7 +17,7 @@ Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `
 
 ## External Script Usage
 
-There are several ways for external scripts to authenticate with Workbooks. Most API scripts should use API Keys to authenticate with Workbooks: Workbooks system administrators can create API Keys in the Workbooks Desktop. Using API Keys there is no need to explicitly call `login()` or `logout()`.
+There are several ways for external scripts to authenticate with Workbooks. Most API scripts should use API Keys to authenticate with Workbooks: Workbooks users can create API Keys in the Workbooks Desktop. Using API Keys there is no need to explicitly call `login()` or `logout()`.
 
 ### Using API Keys without a Session
 
