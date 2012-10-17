@@ -1,10 +1,10 @@
 # PHP language binding for the Workbooks API
 
-See the Script Library within Workbooks itself and `simple_example.php` for some simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.php` file contain additional information to that here.
+See the Script Library within Workbooks itself and the other PHP code here in github for simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.php` file contain additional information to that here.
 
 ## Usage
 
-Workbooks API scripts are either hosted externally to the Workbooks service ("external scripts"), or are hosted by the Workbooks Process Engine ("process engine scripts").  
+Workbooks API scripts are either hosted externally to the Workbooks service ("external scripts"), or are hosted by the Workbooks Process Engine ("process engine scripts"). Process engine scripts can be invoked in several ways, including under a scheduler ('Scheduled Processes'), when a button is pressed ('Button Processes') or when a URL is invoked ('Web Processes').
 
 External scripts can authenticate using an API Key or a username and password. Authentication is done automatically for process engine scripts. In the examples here authentication is done in `test_login_helper.php` so that they can run outside the process engine.
 
@@ -310,7 +310,7 @@ _Send output_
 This is typically used if your script is running under the Workbooks Process Engine as a Web Process. Use it to write to the HTTP body of your web response.
 Examples:
 <pre><code>
-    $workbooks->output('<p><b>Hello</b> ' . $params['_workbooks_username'] . '</p>');
+    $workbooks->output('Hello ' . $params['_workbooks_username']);
 </code></pre>
 
 
@@ -328,7 +328,7 @@ Licensed under the MIT License
 
 > The MIT License
 > 
-> Copyright (c) 2008-2011, Workbooks Online Limited.
+> Copyright (c) 2008-2012, Workbooks Online Limited.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
