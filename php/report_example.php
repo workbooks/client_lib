@@ -1,10 +1,9 @@
 <?php
   
 /**
- *   A demonstration of using the Workbooks API to search for records using
- *   their most significant fields via a thin PHP wrapper
+ *   A demonstration of using the Workbooks API to fetch a report via a thin PHP wrapper.
  *
- *   Last commit $Id: search_example.php 16982 2012-07-31 11:28:14Z jkay $
+ *   Last commit $Id$
  *
  *       The MIT License
  *
@@ -34,22 +33,19 @@ require_once 'workbooks_api.php';
 /* If not running under the Workbooks Process Engine create a session */
 require 'test_login_helper.php';
 
-/*
- * We now have a valid logged-in session. This script does a series of 'CRUD' (Create, Read, Update, Delete) operations.
+/* 
+ * Assumes you have a report with ID 1. 
+ * You can find the ID of a report by exporting its contents as CSV then examining the 
+ * URL which was used by your browser from its Downloads page. The number at the end 
+ * is the ID, e.g. https://secure.workbooks.com/data_views/1.csv
  */
+$response = $workbooks->get('data_views/1.csv', array(), FALSE);
+$workbooks->log('Fetched CSV', $response);
 
-
-/*
- * Do the search
- */
-$response = $workbooks->assertGet('searchables.api', 
-	array(
-		'search' => 'James', 
-		'_sort' => 'relevance', 
-		'_dir' => 'DESC' 
-	)
-);
-$workbooks->log('Fetched objects', $response['data']);
+if (!preg_match('/Amount,Close date,Opportunity stage name,Amount Amount,Amount Currency/', $response)) {
+  $workbooks->log('ERROR: Unexpected response', $response, 'error');
+  testExit($workbooks, $exit_error);
+}
 
 testExit($workbooks);
 

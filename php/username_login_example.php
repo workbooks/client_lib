@@ -1,10 +1,9 @@
 <?php
   
 /**
- *   A demonstration of using the Workbooks API to search for records using
- *   their most significant fields via a thin PHP wrapper
+ *   Test login via username and password.
  *
- *   Last commit $Id: search_example.php 16982 2012-07-31 11:28:14Z jkay $
+ *   Last commit $Id$
  *
  *       The MIT License
  *
@@ -32,26 +31,9 @@
 require_once 'workbooks_api.php';
 
 /* If not running under the Workbooks Process Engine create a session */
-require 'test_login_helper.php';
+require 'test_username_password_session_helper.php';
 
-/*
- * We now have a valid logged-in session. This script does a series of 'CRUD' (Create, Read, Update, Delete) operations.
- */
-
-
-/*
- * Do the search
- */
-$response = $workbooks->assertGet('searchables.api', 
-	array(
-		'search' => 'James', 
-		'_sort' => 'relevance', 
-		'_dir' => 'DESC' 
-	)
-);
-$workbooks->log('Fetched objects', $response['data']);
-
-testExit($workbooks);
-
+/* Do some work to prove the session works */
+require 'simple_example.php';
 ?>
 

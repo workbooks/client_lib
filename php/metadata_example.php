@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API to fetch metadata via a thin PHP wrapper
  *
- *   Last commit $Id: metadata_example.php 16854 2012-07-13 12:51:16Z jkay $
+ *   Last commit $Id: metadata_example.php 16982 2012-07-31 11:28:14Z jkay $
  *
  *       The MIT License
  *
@@ -28,7 +28,7 @@
  *       THE SOFTWARE.   
  */
 
-require 'workbooks_api.php';
+require_once 'workbooks_api.php';
 
 /* If not running under the Workbooks Process Engine create a session */
 require 'test_login_helper.php';

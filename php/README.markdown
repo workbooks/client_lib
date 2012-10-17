@@ -4,10 +4,9 @@ See the Script Library within Workbooks itself and `simple_example.php` for some
 
 ## Usage
 
-The Workbooks API is session-based. 
 Workbooks API scripts are either hosted externally to the Workbooks service ("external scripts"), or are hosted by the Workbooks Process Engine ("process engine scripts").  
 
-External scripts need to establish a session manually whereas this is done automatically for process engine scripts. In the examples here this is done in `test_login_helper.php` so that they can run outside the process engine.
+External scripts can authenticate using an API Key or a username and password. Authentication is done automatically for process engine scripts. In the examples here authentication is done in `test_login_helper.php` so that they can run outside the process engine.
 
 ## Running under the Workbooks Process Engine
 
@@ -18,7 +17,17 @@ Using $workbooks you can call methods such as `get()`, `create()`, `update()`, `
 
 ## External Script Usage
 
-Session IDs are transferred in cookies. Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `setSessionId()` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
+There are several ways for external scripts to authenticate with Workbooks. Most API scripts should use API Keys to authenticate with Workbooks: Workbooks system administrators can create API Keys in the Workbooks Desktop. Using API Keys there is no need to explicitly call `login()` or `logout()`.
+
+### Using API Keys without a Session
+
+Simply invoke `new()` and pass an API Key to create a Workbooks API object and then you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions.
+
+### Using login() and logout()
+
+An alternative is to establish a session with the Workbooks service: pass an API Key or a username and password to the `login()` call and your script receives back a Session ID in a cookie. Sessions can be reconnected using an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
+
+Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `setSessionId()` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
 
 Having obtained a session you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions.
 
@@ -28,17 +37,22 @@ _Initialise the Workbooks API_
 
 Example:
 <code>
-    require 'workbooks_api.php';
+    require_once 'workbooks_api.php';
     
     $workbooks = new WorkbooksApi(array(
       'application_name'   => 'PHP test client',
-      'user_agent'         => 'php_test_client/0.1'
+      'user_agent'         => 'php_test_client/0.1',
+      'api_key'            => 'xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',
     )
 </code>
+
+If you omit the api_key above you will instead need to use `login()` to establish a session and receive a cookie.
 
 ### login()
 
 _Login to the service to set up a session_
+
+This is not required if you have passed an api_key to the `new()` function. If you use a username and password to authenticate you may also need to pass a logical_database_id.
 
 Example:
 <code>
@@ -73,6 +87,8 @@ Example:
 ### logout()
 
 _Logout from the service_
+
+This is not required if you have passed an api_key to the `new()` function. 
 
 Example:
 <code>

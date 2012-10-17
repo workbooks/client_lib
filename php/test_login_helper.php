@@ -1,8 +1,10 @@
 <?php
   
 /**
- *   Login wrapper for Workbooks for API test purposes. If you are running under the Process Engine none of this is 
- *   necessary.
+ *   Login wrapper for Workbooks for API test purposes. This version uses an API Key to
+ *   authenticate which is the recommended approach unless you are running under the 
+ *   Process Engine which will set up a session for you automatically without requiring
+ *   an API key.
  *
  *   Last commit $Id$
  *
@@ -35,104 +37,54 @@ $exit_ok = 0;
 /* 
  * Login to Workbooks and return a handle to the workbooks connection
  */
-function testLogin($service          = 'http://localhost:3000',       //  This suits our autotest system. Set to NULL to connect to the Production Workbooks service.
-                   $application_name = 'test_client', 
-                   $user_agent       = 'test_client/0.1', 
-                   $verify_peer      = false, 
-                   $username         = 'system_test@workbooks.com', 
-                   $password         = 'abc123') {
-
-  /*
-   * Initialise the Workbooks API object
-   */
-  $service_params = array(
-    'application_name'   => $application_name,                        // Mandatory, should be the "human name" for the client
-    'user_agent'         => $user_agent,                              // Mandatory, should include version number
-    
-    // The following settings are used in Workbooks auto-test environment and are not typical.
-    'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
-    'connect_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
-    'request_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
-    'verify_peer'        => $verify_peer,                             // Optional, if unset defaults to checking the peer SSL certificate
-  );
-  if (isset($service)) {
-    $service_params['service'] = $service;
-  }
+if(!function_exists('testLogin')) {
+  function testLogin($service          = 'http://localhost:3000',      // Set to NULL to use the production service
+                     $application_name = 'test_client', 
+                     $user_agent       = 'test_client/0.1', 
+                     $verify_peer      = false,
+                     $api_key          = '01234-56789-01234-56789-01234-56789-01234-56789') {
   
-  $workbooks = new WorkbooksApi($service_params);
-  
-  /*
-   * Connect to the service and login
-   */
-  $login_params = array(
-    'username' => $username,
-    'password' => $password,
-  );
-  
-  # If there is a database env variable use it to login
-  if (getenv('DATABASE_ID')) {
-    $login_params['logical_database_id'] = getenv('DATABASE_ID');
-  }
-
-  $workbooks->log('login commences', __FILE__, 'debug');
-  
-  $login = $workbooks->login($login_params);
-  
-  if ($login['http_status'] == WorkbooksApi::HTTP_STATUS_FORBIDDEN && $login['response']['failure_reason'] == 'no_database_selection_made') {
-    //$workbooks->log('Database selection required', $login, 'error');
-    
     /*
-     * Multiple databases are available, and we must choose one. 
-     * A good UI might remember the previously-selected database or use $databases to present a list of databases for the user to choose from. 
+     * Initialise the Workbooks API object
      */
-    $default_database_id = $login['response']['default_database_id'];
-    $databases = $login['response']['databases'];
+    $service_params = array(
+      'application_name'   => $application_name,                        // Mandatory, should be the "human name" for the client
+      'user_agent'         => $user_agent,                              // Mandatory, should include version number
+      
+      // The following settings are used in Workbooks auto-test environment and are not typical.
+      'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
+      'connect_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
+      'request_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
+      'verify_peer'        => $verify_peer,                             // Optional, if unset defaults to checking the peer SSL certificate
+      
+      'api_key'            => $api_key,
+    );
+    if (isset($service)) {
+      $service_params['service'] = $service;
+    }
     
-    /*
-     * For this test script we simply select the one which was the default when the user last logged in to the Workbooks user interface. This 
-     * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice 
-     * for all of their API clients.
-     */
-    $login = $workbooks->login(array_merge($login_params, array('logical_database_id' => $default_database_id)));
+    $workbooks = new WorkbooksApi($service_params);
+    return $workbooks;
   }
-  
-  if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
-    $workbooks->log('Login failed.', $login, 'error');
-    exit($exit_error);
-  }
-  
-  /*
-   * We now have a valid logged-in session.
-   */
-  $workbooks->log('login complete', __FILE__, 'info');
-
-  return $workbooks;
 }
 
 /*
- * Logout and Exit. Does not return!
+ * Exit. Does not return!
  */
-function testExit($workbooks, $exit_code = 0) {
-  /*
-   * Logout
-   * Arguably testing for successful logout is a bit of a waste of effort...
-   */
-  $logout = $workbooks->logout();
-  if (!$logout['success']) {
-    $workbooks->log('Logout failed.', $logout, 'error');
-    exit($exit_error);
+ 
+if(!function_exists('testExit')) {
+  function testExit($workbooks, $exit_code = 0) {
+    if ($exit_code == 0) { 
+      $workbooks->log('script exited', 'OK', 'info');
+    } else {
+      $workbooks->log('script exited with error', $exit_code, 'error');
+    }
+    exit($exit_code);
   }
-  $workbooks->log('logout complete', __FILE__, 'info');
-  if ($exit_code == 0) { 
-    $workbooks->log('script exited', 'OK', 'info');
-  } else {
-    $workbooks->log('script exited with error', $exit_code, 'error');
-  }
-  exit($exit_code);
 }
 
 if ($workbooks == NULL) {
-  /* Not running under the Workbooks Process Engine, so setup a session */
+  /* Not already authenticated or running under the Workbooks Process Engine, so setup a session */
   $workbooks = testLogin();
 }
 

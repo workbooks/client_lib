@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 16294 2012-05-18 15:45:04Z jkay $
+ *   Last commit $Id: workbooks_api.php 17456 2012-10-05 14:53:59Z jkay $
  *
  *       The MIT License
  *
@@ -96,6 +96,7 @@ class WorkbooksApi
   protected $curl_options = NULL;
   protected $logger_callback = NULL;
   protected $session_id = NULL;
+  protected $api_key = NULL;
   protected $username = NULL;
   protected $logical_database_id = NULL;
   protected $authenticity_token = NULL;
@@ -137,7 +138,7 @@ class WorkbooksApi
    *       string arguments: msg and level.  In the absence of a logger_callback, no logging is done by this library.
    *       WorkbooksApi::logAllToStdout() is provided as an example: pass
    *         array('Workbooks', 'logAllToStdout').
-   *   - username: the user to login with
+   *   - api_key or username: the user to login with
    *   - session_id: a sessionID to reconnect to
    *   - logical_database_id: the databaseID which the session_id is associated with
    *   - api_logging_key: if specified this is used to identify a Process Log to attach API logging records to
@@ -175,6 +176,10 @@ class WorkbooksApi
     
     if (isset($params['request_timeout'])) {
       $this->setRequestTimeout($params['request_timeout']);
+    }
+
+    if (isset($params['api_key'])) {
+      $this->setApiKey($params['api_key']);
     }
     
     if (isset($params['username'])) {
@@ -372,6 +377,25 @@ class WorkbooksApi
    */
   public function getRequestTimeout() {
     return $this->request_timeout;
+  }
+
+  /**
+   * Set the API Key used to login.
+   *
+   * @param String $api_key the API key
+   */
+  public function setApiKey($api_key) {
+    $this->api_key = $api_key;
+    return $this;
+  }
+
+  /**
+   * Get the API Key used to login.
+   *
+   * @return String $api_key the API key
+   */
+  public function getApiKey() {
+    return $this->api_key;
   }
 
   /**
@@ -598,7 +622,7 @@ class WorkbooksApi
    *
    * @param String $msg a string to be logged
    * @param Mixed $expression any values to output with the message
-   * @param String $level optional: one of 'error', 'warning', 'notice', 'info', 'debug' (the default)
+   * @param String $level optional: one of 'error', 'warning', 'notice', 'info', 'debug' (the default), or 'output'
    */
   public function log($msg, $expression='nil', $level='debug') {
     if (isset($this->logger_callback)) {
@@ -613,30 +637,37 @@ class WorkbooksApi
   /**
    * A sample logger, this one passes all messages to stdout.
    * @param String $msg a string to be logged
-   * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
+   * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug', 'output'
    */
-   public function logAllToStdout($msg, $level) {
-     echo "\n\n[" . $level .'] ' . $msg . "\n\n";
-   }
+  public function logAllToStdout($msg, $level) {
+    echo "\n\n[" . $level .'] ' . $msg . "\n\n";
+  }
 
-   /**
-    * A sample logger, this one passes all messages to stdout and flushes the buffer
-    * @param String $msg a string to be logged
-    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug'
-    */
-    public function logAllToStdoutAndFlush($msg, $level) {
-      self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level);
-      // Now flush the output buffer
-      ob_flush();
-    }
-
-   /**
-    * Helper function to send headers when running as a Web Process. 
-    */    
-    public function header($str) {
-      echo "\n\n[header] {$str}\n\n";
-    }
-   
+  /**
+   * A sample logger, this one passes all messages to stdout and flushes the buffer
+   * @param String $msg a string to be logged
+   * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug', 'output'
+   */
+  public function logAllToStdoutAndFlush($msg, $level) {
+    self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level);
+    // Now flush the output buffer
+    ob_flush();
+  }
+  
+  /**
+   * Helper function to send headers when running as a Web Process. 
+   */    
+  public function header($str) {
+    echo "\n\n[header] {$str}\n\n";
+  }
+  
+  /**
+   * Helper function to send output when running as a Web Process. 
+   */    
+  public function output($str) {
+    echo "\n\n[output] {$str}\n\n";
+  }
+  
   /**
    * Helper function which evaluates a response to determine how successful it was
    * @param Array $response a response from the service API
@@ -645,28 +676,28 @@ class WorkbooksApi
    *   'not-ok' - something in the request could not be satisfied; you should check the errors and warnings.
    *   'ok'     - completely successful.
    */
-   public function condensedStatus(&$response) {
-     $status = 'ok';
-     if (!isset($response['success'])) {
-       return 'failed'; // Unexpected failure - there should always be a 'success' element
-     } elseif (!$response['success']){
-       return 'failed'; // Something was quite wrong, not just a validation failure
-     } elseif (isset($response['errors'])) {
-       $status = 'not-ok';
-     } elseif (!isset($response['affected_object_information']) || !is_array($response['affected_object_information'])) {
-       return 'ok';
-     } else {
-       foreach ($response['affected_object_information'] as &$affected) {
-         if (!isset($affected['success'])) {
-           return 'failed'; // Again, this is unexpected.
-         }
-         if (!$affected['success']) {
-           $status = 'not-ok'; // There will be warnings or errors indicated which prevented complete success.
-         }
-       }
-     }
-     return $status;
-   }
+  public function condensedStatus(&$response) {
+    $status = 'ok';
+    if (!isset($response['success'])) {
+      return 'failed'; // Unexpected failure - there should always be a 'success' element
+    } elseif (!$response['success']){
+      return 'failed'; // Something was quite wrong, not just a validation failure
+    } elseif (isset($response['errors'])) {
+      $status = 'not-ok';
+    } elseif (!isset($response['affected_object_information']) || !is_array($response['affected_object_information'])) {
+      return 'ok';
+    } else {
+      foreach ($response['affected_object_information'] as &$affected) {
+        if (!isset($affected['success'])) {
+          return 'failed'; // Again, this is unexpected.
+        }
+        if (!$affected['success']) {
+          $status = 'not-ok'; // There will be warnings or errors indicated which prevented complete success.
+        }
+      }
+    }
+    return $status;
+  }
   
   /**
    * Check responses are expected. Raises an exception if the response is not.
@@ -701,7 +732,8 @@ class WorkbooksApi
   /**
    * Login to the service to set up a session.
    *   Optional settings
-   *   - username: The user's login name (required if not set using setUsername).
+   *   - api_key: An API key (this is preferred over username/password).
+   *   - username: The user's login name (required if not set using setUsername) or using an API key.
    *   - password: The user's login password. Either this or a session_id must be specified.
    *   - session_id: The ID of a session to reconnect to. Either this or a password must be specified.
    *   - logical_database_id: The ID of a database to select - not required when the user has access to exactly one.
@@ -718,19 +750,21 @@ class WorkbooksApi
    */
   public function login($params) {
     // $this->log('login() called with params', $params);
-
+    if (empty($params['api_key'])) {
+      $params['api_key'] = $this->getApiKey();
+    }
     if (empty($params['username'])) {
       $params['username'] = $this->getUsername();
     }
-    if (empty($params['username'])) {
-      throw new Exception('A username must be supplied');
+    if (empty($params['api_key']) && empty($params['username'])) {
+      throw new Exception('An API key or a username must be supplied');
     }
     
     if (empty($params['password']) && empty($params['session_id'])) {
       $params['session_id'] = $this->getSessionId();
     }
-    if (empty($params['password']) && empty($params['session_id'])) {
-      throw new Exception('A password or session_id must be supplied');
+    if (empty($params['api_key']) && empty($params['password']) && empty($params['session_id'])) {
+      throw new Exception('A password or session_id must be supplied unless using an API Key');
     }
 
     if (empty($params['logical_database_id'])) {
@@ -784,7 +818,7 @@ class WorkbooksApi
     $retval = array(
       'success'         => $success,
       'http_status'     => $http_status, 
-      'response'        => $response
+      'response'        => $response  
     );
     // $this->log('logout() returns', $retval, 'info');
     return $retval;
@@ -1003,7 +1037,12 @@ class WorkbooksApi
   public function apiCall($endpoint, $method, $post_params=array(), $encoded_post_params='', $decode_json=true) {
     // $this->log('apiCall() called with params', array($endpoint, $method, $post_params, $encoded_post_params, $decode_json));
 
-    $this->ensureLogin();
+    // Clients using API Keys normally pass those on each request; otherwise establish a session to span multiple requests.
+    if ($this->getApiKey()) {
+      $post_params['api_key'] = $this->getApiKey();
+    } else {
+      $this->ensureLogin();
+    }
     
     // API calls are always to a '.api' endpoint; the caller does not have to include this.    
     // Including ANY extension will prevent '.api' from being appended.
