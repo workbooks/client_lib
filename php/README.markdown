@@ -36,7 +36,7 @@ Having obtained a session you can use any of the following methods: `get()`, `cr
 _Initialise the Workbooks API_
 
 Example:
-<code>
+<pre><code>
     require_once 'workbooks_api.php';
     
     $workbooks = new WorkbooksApi(array(
@@ -44,7 +44,7 @@ Example:
       'user_agent'         => 'php_test_client/0.1',
       'api_key'            => 'xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',
     )
-</code>
+</code></pre>
 
 If you omit the api_key above you will instead need to use `login()` to establish a session and receive a cookie.
 
@@ -55,7 +55,7 @@ _Login to the service to set up a session_
 This is not required if you have passed an api_key to the `new()` function. If you use a username and password to authenticate you may also need to pass a logical_database_id.
 
 Example:
-<code>
+<pre><code>
     $login_params = array(
       'username' => 'user@example.com',
       'password' => 'passw0rd',
@@ -82,7 +82,7 @@ Example:
     if ($login['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
       handle_login_failure();
     }
-</code>
+</code></pre>
 
 ### logout()
 
@@ -91,9 +91,9 @@ _Logout from the service_
 This is not required if you have passed an api_key to the `new()` function. 
 
 Example:
-<code>
+<pre><code>
     $logout = $workbooks->logout();
-</code>
+</code></pre>
 
 ## Interacting with Workbooks
 
@@ -102,7 +102,7 @@ Example:
 _Get a list of objects, or show a single object_
 
 Example:
-<code>
+<pre><code>
     $filter_limit_select = array(
       '_start'               => '0',                                     // Starting from the 'zeroth' record
       '_limit'               => '100',                                   //   fetch up to 100 records
@@ -121,14 +121,14 @@ Example:
     );
     $response = $workbooks->assertGet('crm/organisations', $filter_limit_select);
     // or: $response = $workbooks->get('crm/organisations', $filter_limit_select);
-</code>
+</code></pre>
 
 ### assertCreate(), create()
 
 _Create one or more objects_
 
 Example, creating a single organisation:
-<code>
+<pre><code>
     $create_one_organisation = array(
       'name'                                 => 'Birkbeck Burgers',
       'industry'                             => 'Food',
@@ -138,10 +138,10 @@ Example, creating a single organisation:
     );
     $response = $workbooks->assertCreate('crm/organisations', $create_one_organisation);
     // or: $response = $workbooks->create('crm/organisations', $create_one_organisation);
-</code>
+</code></pre>
 
 Or create several:
-<code>
+<pre><code>
     $create_three_organisations = array(
       array (
         'name'                                 => 'Freedom & Light Ltd',
@@ -175,14 +175,14 @@ Or create several:
 
     $response = $workbooks->assertCreate('crm/organisations', $create_three_organisations);
     // or: $response = $workbooks->create('crm/organisations', $create_three_organisations);
-</code>
+</code></pre>
 
 ### assertUpdate(), update()
 
 _Update one or more objects_
 
 Example:
-<code>
+<pre><code>
     $update_three_organisations = array(
       array (
         'id'                                   => $object_id_lock_versions[0]['id'],
@@ -205,14 +205,14 @@ Example:
 
     $response = $workbooks->assertUpdate('crm/organisations', $update_three_organisations);
     // or: $response = $workbooks->update('crm/organisations', $update_three_organisations);
-</code>
+</code></pre>
 
 ### assertDelete(), delete()
 
 _Delete one or more objects_
 
 Example:
-<code>
+<pre><code>
     $object_id_lock_versions = array(
       array (
         'id'                                   => $object_id_lock_versions[0]['id'],
@@ -221,14 +221,14 @@ Example:
     );
     $response = $workbooks->assertDelete('crm/organisations', $object_id_lock_versions);
     // or: $response = $workbooks->delete('crm/organisations', $object_id_lock_versions);
-</code>
+</code></pre>
 
 ### assertBatch(), batch()
 
 _Create, update, and delete several objects together_
 
 Example:
-<code>
+<pre><code>
     $batch_organisations = array(
       array (
         'method'                               => 'CREATE',
@@ -259,7 +259,7 @@ Example:
 
     $response = $workbooks->assertBatch('crm/organisations', $batch_organisations);
     // or: $response = $workbooks->batch('crm/organisations', $batch_organisations);
-</code>
+</code></pre>
 
 ### idVersion()
 
@@ -267,13 +267,52 @@ _Extract ID and LockVersion from response_
 
 You need the ID and LockVersion in order to manipulate records. `idVersion()` is often done after an update or create operation.
 Example:
-<code>
+<pre><code>
     // Apply some changes
     $response = $workbooks->assertBatch('crm/organisations', $batch_organisations);
     $object_id_lock_versions = $workbooks->idVersions($response);
     // Delete all those records!
     $response = $workbooks->assertDelete('crm/organisations', $object_id_lock_versions);
-</code>
+</code></pre>
+
+### log()
+
+_Write log records_
+
+Workbooks has a comprehensive logging facility. API requests to the service and responses from the service are automatically logged for scripts running under the process engine.
+
+The `log()` method can be called with up to three parameters. All but the first are optional. The first parameter is a string to label the log record. The second parameter is data (e.g. an array, string or other data structure) which is dumped using `var_export()`. The third parameter is a log level; log levels include 'error', 'warning', 'notice', 'info', 'debug' (the default), and 'output' (which is rarely used).
+
+The last item that a Process logs or outputs is used as the summary of a process within the Automation section of the Workbooks Desktop.
+Examples:
+<pre><code>
+    $workbooks->log(__FUNCTION__);
+    $workbooks->log("Invoked", array($params, $form_fields), 'info');
+    $workbooks->log('Fetched a data item', $response['data']);
+    $workbooks->log('Bad response for non-existent item', array($status, $response), 'error');
+</code></pre>
+
+### header()
+
+_Send a header_
+
+If your script is running under the Workbooks Process Engine as a Web Process then you can send headers before the start of output (which becomes the HTTP body). To send a header, use the `header()` method; be careful to send _nothing_ before sending a header - examine your use of php tags and whitespace carefully.
+Examples:
+<pre><code>
+    $workbooks->header('Set-Cookie:wibble=wobble; path=/');
+    $workbooks->header('X-Customer-Defined-Header: 0123456789');
+</code></pre>
+
+### output()
+
+_Send output_
+
+This is typically used if your script is running under the Workbooks Process Engine as a Web Process. Use it to write to the HTTP body of your web response.
+Examples:
+<pre><code>
+    $workbooks->output('<p><b>Hello</b> ' . $params['_workbooks_username'] . '</p>');
+</code></pre>
+
 
 ## Further Information
 
