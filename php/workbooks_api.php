@@ -770,6 +770,10 @@ class WorkbooksApi
     if (empty($params['logical_database_id'])) {
       $params['logical_database_id'] = $this->getLogicalDatabaseId();
     }
+    
+    if (empty($params['logical_database_id']) && !empty($params['session_id']) && empty($params['password'])){
+      throw new Exception('A logical database ID must be supplied when trying to re-connect to a session');
+    }
 
     // These default settings can be overridden by the caller.
     $params = array_merge(array(
