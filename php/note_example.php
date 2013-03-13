@@ -3,7 +3,7 @@
 /**
 * A demonstration of using the Workbooks API via a thin PHP wrapper to CRUD notes
 *
-* Last commit $Id$
+* Last commit $Id: note_example.php 18524 2013-03-06 11:15:59Z jkay $
 *
 * The MIT License
 *

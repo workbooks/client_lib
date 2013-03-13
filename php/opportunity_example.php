@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to operate on Opportunities and a number of
  *   related objects via a thin PHP wrapper
  *
- *   Last commit $Id: opportunity_example.php 16982 2012-07-31 11:28:14Z jkay $
+ *   Last commit $Id: opportunity_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

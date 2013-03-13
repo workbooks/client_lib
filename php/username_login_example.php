@@ -3,7 +3,7 @@
 /**
  *   Test login via username and password.
  *
- *   Last commit $Id$
+ *   Last commit $Id: username_login_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

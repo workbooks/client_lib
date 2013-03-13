@@ -7,7 +7,7 @@
  *   A demonstration of using the Workbooks API via a thin PHP wrapper to store and retrieve
  *   state.
  *
- *   Last commit $Id$
+ *   Last commit $Id: api_data_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

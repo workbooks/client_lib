@@ -7,7 +7,7 @@
  *
  *   If you are running under the Process Engine none of this is necessary.
  *
- *   Last commit $Id$
+ *   Last commit $Id: test_api_key_session_helper.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

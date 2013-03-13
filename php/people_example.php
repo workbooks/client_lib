@@ -5,7 +5,7 @@
  *   The created_through_reference and created_through attributes are used as if the caller
  *   were synchronising with an external service.
  *
- *   Last commit $Id: people_example.php 16982 2012-07-31 11:28:14Z jkay $
+ *   Last commit $Id: people_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

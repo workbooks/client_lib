@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 17456 2012-10-05 14:53:59Z jkay $
+ *   Last commit $Id: workbooks_api.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *
@@ -770,7 +770,7 @@ class WorkbooksApi
     if (empty($params['logical_database_id'])) {
       $params['logical_database_id'] = $this->getLogicalDatabaseId();
     }
-    
+
     if (empty($params['logical_database_id']) && !empty($params['session_id']) && empty($params['password'])){
       throw new Exception('A logical database ID must be supplied when trying to re-connect to a session');
     }

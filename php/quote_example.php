@@ -2,7 +2,7 @@
 /**
  *   A demonstration of using the Workbooks API to ... via a thin PHP wrapper
  *
- *   Last commit $Id$
+ *   Last commit $Id: quote_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

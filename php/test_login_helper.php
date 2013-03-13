@@ -6,7 +6,7 @@
  *   Process Engine which will set up a session for you automatically without requiring
  *   an API key.
  *
- *   Last commit $Id$
+ *   Last commit $Id: test_login_helper.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *

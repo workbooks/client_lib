@@ -3,7 +3,7 @@
 /**
  *   Test login via API key using a session.
  *
- *   Last commit $Id$
+ *   Last commit $Id: api_key_login_example.php 18524 2013-03-06 11:15:59Z jkay $
  *
  *       The MIT License
  *
