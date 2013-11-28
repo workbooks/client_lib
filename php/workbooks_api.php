@@ -3,11 +3,11 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: workbooks_api.php 20214 2013-10-03 14:44:27Z jkay $
  *
  *       The MIT License
  *
- *       Copyright (c) 2008-2011, Workbooks Online Limited.
+ *       Copyright (c) 2008-2013, Workbooks Online Limited.
  *       
  *       Permission is hereby granted, free of charge, to any person obtaining a copy
  *       of this software and associated documentation files (the "Software"), to deal
@@ -45,14 +45,14 @@
  *         back to the Workbooks service, putting a handle to it in the variable '$workbooks'.
  *         This technique is used by scripts running under the Workbooks Process Engine. 
  *
- *   Requirements: Uses CURL and JSON PHP extensions since these are the most widely available.
+ *   Requirements: Uses CURL and JSON PHP extensions.
  */
 
 if (!function_exists('curl_init')) {
-  throw new Exception('workbooks.php uses the CURL PHP extension');
+  throw new Exception('workbooks_api.php uses the CURL PHP extension');
 }
 if (!function_exists('json_decode')) {
-  throw new Exception('workbooks.php uses the JSON PHP extension');
+  throw new Exception('workbooks_api.php uses the JSON PHP extension');
 }
 
 
@@ -87,7 +87,7 @@ class WorkbooksApiException extends Exception
 class WorkbooksApi
 {
 
-  const VERSION = '1.1';
+  const VERSION = '1.2';
 
   /**
    * Instance variables
@@ -99,6 +99,7 @@ class WorkbooksApi
   protected $api_key = NULL;
   protected $username = NULL;
   protected $logical_database_id = NULL;
+  protected $database_instance_id = NULL;
   protected $authenticity_token = NULL;
   protected $api_logging_key = NULL; // when available requests server-side logging of API requests/responses
   protected $api_logging_seq = 0;    // used for server-side logging of API requests/responses
@@ -124,7 +125,20 @@ class WorkbooksApi
    * The Workbooks session cookie
    */
   const SESSION_COOKIE = 'Workbooks-Session';
+  
+  /**
+   * The content_type governs the encoding used for data transfer to the Service. Two forms are supported in this binding; use 
+   * FORM_DATA for file uploads.
+   */
+  const FORM_URL_ENCODED = 'application/x-www-form-urlencoded';
+  const FORM_DATA = 'multipart/form-data';
 
+  /**
+   * Define a hard limit of 1 MegaByte to limit the size of a log message logged with the default logger.
+   */
+  const HARD_LOG_LIMIT = 1048576;
+  
+  
   /**
    * Initialise the Workbooks API
    *
@@ -210,7 +224,8 @@ class WorkbooksApi
       CURLOPT_USERAGENT      => $this->getUserAgent(),
       CURLOPT_CONNECTTIMEOUT => $this->getConnectTimeout(),
       CURLOPT_TIMEOUT        => $this->getRequestTimeout(),
-      CURLOPT_SSL_VERIFYPEER => $this->getVerifyPeer()
+      CURLOPT_SSL_VERIFYHOST => $this->getVerifyPeer(),
+      CURLOPT_SSL_VERIFYPEER => $this->getVerifyPeer(),
     );
     
     // $this->log('new() returns', $this);
@@ -420,7 +435,7 @@ class WorkbooksApi
   /**
    * Set the logical database ID used to login/reconnect.
    *
-   * @param Integer $logical_database_id the ID of the database the session is associated with
+   * @param Integer $logical_database_id the ID of the logical database the session is associated with
    */
   public function setLogicalDatabaseId($logical_database_id) {
     $this->logical_database_id = $logical_database_id;
@@ -430,12 +445,31 @@ class WorkbooksApi
   /**
    * Get the logical database ID used to login/reconnect.
    *
-   * @return Integer $logical_database_id the ID of the database the session is associated with
+   * @return Integer $logical_database_id the ID of the logical database the session is associated with
    */
   public function getLogicalDatabaseId() {
     return $this->logical_database_id;
   }
 
+  /**
+   * Set the active database ID.
+   *
+   * @param Integer $database_instance_id the ID of the database instance the session is associated with
+   */
+  public function setDatabaseInstanceId($database_instance_id) {
+    $this->database_instance_id = $database_instance_id;
+    return $this;
+  }
+
+  /**
+   * Get the active database as a string to embed in a URL (useful for web processes).
+   *
+   * @return String $encoded_database_instance_id the database instance the session is associated with
+   */
+  public function getDatabaseInstanceRef() {
+    return strrev(base64_encode($this->database_instance_id + 17));
+  }
+  
   /**
    * Set the API logging key: this is used to associate API request/response log 
    * records with the log for an invocation of a Process. Only useful when running
@@ -489,7 +523,7 @@ class WorkbooksApi
   }
 
   /**
-   * Get the request timeout.
+   * Get the SSL verify certificate setting.
    *
    * @return Boolean whether to verify the peer's SSL certificate
    */
@@ -623,14 +657,15 @@ class WorkbooksApi
    * @param String $msg a string to be logged
    * @param Mixed $expression any values to output with the message
    * @param String $level optional: one of 'error', 'warning', 'notice', 'info', 'debug' (the default), or 'output'
+   * @param Integer $log_size_limit the maximum size msg that will be logged.
    */
-  public function log($msg, $expression='nil', $level='debug') {
+  public function log($msg, $expression='nil', $level='debug', $log_size_limit=4096) {
     if (isset($this->logger_callback)) {
       if ($expression != 'nil') {
         $msg .= ' «' . var_export($expression, true) . '»';
       }
 
-      call_user_func($this->logger_callback, $msg, $level);
+      call_user_func($this->logger_callback, $msg, $level, $log_size_limit);
     }
   }
   
@@ -638,8 +673,17 @@ class WorkbooksApi
    * A sample logger, this one passes all messages to stdout.
    * @param String $msg a string to be logged
    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug', 'output'
+   * @param Integer $log_size_limit the maximum size msg that will be logged. 
+   *        Logs the first and last parts of longer msgs and indicates the number of bytes that have not been logged.
    */
-  public function logAllToStdout($msg, $level) {
+  public function logAllToStdout($msg, $level, $log_size_limit) {
+    // Use isset on every msg for performance and only use strlen() when the msg is over the limit.
+    if (isset($msg[$log_size_limit])){
+      $msg_size = strlen($msg);
+      // Apply a hard limit to limit the load on the Workbooks service.
+      $log_size_limit = ($log_size_limit > WorkbooksApi::HARD_LOG_LIMIT ? WorkbooksApi::HARD_LOG_LIMIT : $log_size_limit); 
+      $msg = substr($msg, 0, $log_size_limit / 2) . "... (" . ($msg_size - $log_size_limit) . " bytes) ..." . substr($msg, $msg_size - $log_size_limit / 2);
+	  }
     echo "\n\n[" . $level .'] ' . $msg . "\n\n";
   }
 
@@ -647,9 +691,10 @@ class WorkbooksApi
    * A sample logger, this one passes all messages to stdout and flushes the buffer
    * @param String $msg a string to be logged
    * @param String $level one of 'error', 'warning', 'notice', 'info', 'debug', 'output'
+   * @param Integer $log_size_limit the maximum size msg that will be logged. 
    */
-  public function logAllToStdoutAndFlush($msg, $level) {
-    self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level);
+  public function logAllToStdoutAndFlush($msg, $level, $log_size_limit) {
+    self::logAllToStdout(preg_replace('/\n\n+/m', "\n", $msg), $level, $log_size_limit);
     // Now flush the output buffer
     ob_flush();
   }
@@ -665,7 +710,7 @@ class WorkbooksApi
    * Helper function to send output when running as a Web Process. 
    */    
   public function output($str) {
-    echo "\n\n[output] {$str}\n\n";
+    echo "\n\n[outbin] " . chunk_split(base64_encode($str), 1024*1024, "\n\n[outbin] ") . "\n\n";
   }
   
   /**
@@ -791,6 +836,7 @@ class WorkbooksApi
       $this->setLoginState(true);
       $this->setUserQueues($response['my_queues']);
       $this->setAuthenticityToken($response['authenticity_token']);
+      $this->setDatabaseInstanceId($response['database_instance_id']);
     }
     
     $retval = array(
@@ -833,31 +879,33 @@ class WorkbooksApi
    * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'
    * @param Array $params the parameters to the API call - filter, limit, column selection as an array of hashes;
    *   each hash element can have a simple value or be an array of values e.g. for column selection.
-   * @param Boolean $decode_json whether to decode json
+   * @param Array $options Optional options to pass through to makeRequest() potentially including 'content_type'. 
+   *   For backwards-compatability, setting this instead to 'true' or 'false' toggles the decoding of JSON.
    * @return Array the decoded json response if $decode_json is true (default), or the raw response if not
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function get($endpoint, $params, $decode_json=true) {
+  public function get($endpoint, $params, $options=true) {
+    
+    $url_encode = (is_array($options) && isset($options['content_type']) ? $options['content_type'] == WorkbooksApi::FORM_URL_ENCODED : true);
     $array_params = array(); // those where the value is an array, not simply a value
     foreach(array_keys($params) as $k) {
       if (is_array($params[$k])) {
         foreach ($params[$k] as &$array_value) {
-          $array_params[] = $k . '=' . urlencode($array_value);
+          $array_params[] = $k . '=' . ($url_encode ? urlencode($array_value) : $array_value);
         }
         unset($params[$k]);
       }
     }
-    $array_param_string = implode("&", $array_params);
-    return $this->apiCall($endpoint, 'GET', $params, $array_param_string, $decode_json);
+    return $this->apiCall($endpoint, 'GET', $params, $array_params, $options);
   }
 
   /**
    * Interface as per get() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function assertGet($endpoint, $params, $decode_json=true) {
-     $response = $this->get($endpoint, $params, $decode_json);
+  public function assertGet($endpoint, $params, $options=true) {
+     $response = $this->get($endpoint, $params, $options);
      $this->assertResponse($response);
      return $response;
   }
@@ -869,20 +917,21 @@ class WorkbooksApi
    * @param Array $objs an array of objects to create
    * @param Array a set of additional parameters to send along with the data, for example
    *   array('_per_object_transactions' => true) to change the commit behaviour.
+   * @param Array $options Optional options to pass through to makeRequest()
    * @return Array the decoded response.
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function create($endpoint, &$objs, $params=array(), $method='none') {
-    return $this->batch($endpoint, $objs, $params, 'CREATE');
+  public function create($endpoint, &$objs, $params=array(), $options=array()) {
+    return $this->batch($endpoint, $objs, $params, 'CREATE', $options);
   }
 
   /**
    * Interface as per create() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function assertCreate($endpoint, &$objs, $params=array(), $method='none') {
-     $response = $this->create($endpoint, $objs, $params, $method);
+  public function assertCreate($endpoint, &$objs, $params=array(), $options=array()) {
+     $response = $this->create($endpoint, $objs, $params, $options);
      $this->assertResponse($response);
      return $response;
   }
@@ -895,20 +944,21 @@ class WorkbooksApi
    *   together with the values to set.
    * @param Array a set of additional parameters to send along with the data, for example
    *   array('_per_object_transactions' => true) to change the commit behaviour.
+   * @param Array $options Optional options to pass through to makeRequest()
    * @return Array the decoded response.
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function update($endpoint, &$objs, $params=array(), $method='none') {
-    return $this->batch($endpoint, $objs, $params, 'UPDATE');
+  public function update($endpoint, &$objs, $params=array(), $options=array()) {
+    return $this->batch($endpoint, $objs, $params, 'UPDATE', $options);
   }
 
   /**
    * Interface as per update() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function assertUpdate($endpoint, &$objs, $params=array(), $method='none') {
-     $response = $this->update($endpoint, $objs, $params, $method);
+  public function assertUpdate($endpoint, &$objs, $params=array(), $options=array()) {
+     $response = $this->update($endpoint, $objs, $params, $options);
      $this->assertResponse($response);
      return $response;
   }
@@ -920,20 +970,21 @@ class WorkbooksApi
    * @param Array $objs an array of objects to delete, specifying the id and lock_version of each.
    * @param Array a set of additional parameters to send along with the data, for example
    *   array('_per_object_transactions' => true) to change the commit behaviour.
+   * @param Array $options Optional options to pass through to makeRequest()
    * @return Array the decoded response.
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function delete($endpoint, &$objs, $params=array(), $method='none') {
-    return $this->batch($endpoint, $objs, $params, 'DELETE');
+  public function delete($endpoint, &$objs, $params=array(), $options=array()) {
+    return $this->batch($endpoint, $objs, $params, 'DELETE', $options);
   }
 
   /**
    * Interface as per delete() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function assertDelete($endpoint, &$objs, $params=array(), $method='none') {
-     $response = $this->delete($endpoint, $objs, $params, $method);
+  public function assertDelete($endpoint, &$objs, $params=array(), $options=array()) {
+     $response = $this->delete($endpoint, $objs, $params, $options);
      $this->assertResponse($response);
      return $response;
   }
@@ -949,22 +1000,23 @@ class WorkbooksApi
    *   array('_per_object_transactions' => true) to change the commit behaviour.
    * @param $method String The method (CREATE/UPDATE/DELETE) which is to be used if 
    *   not specified for an object.
+   * @param Array $options Optional options to pass through to makeRequest() potentially including 'content_type'.
    * @return Array the decoded response.
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function batch($endpoint, &$objs, $params=array(), $method='none') {
+  public function batch($endpoint, &$objs, $params=array(), $method='none', $options=array()) {
     // $this->log('batch() called with params', array($endpoint, $objs));
-    
+
     // If just one object was passed in, turn it into an array.
     if (!array_key_exists(0, $objs)) {
       $objs = array($objs);
     }  
-
+    
     $filter_params = $this->encodeMethodParams($objs, $method);
-    $encoded_post_params = $this->fullSquare($objs);
-    $response = $this->apiCall($endpoint, 'PUT', $params, $filter_params . '&' . $encoded_post_params);
+    $ordered_post_params = $this->fullSquare($objs, !(@$options['content_type'] == WorkbooksApi::FORM_DATA));
+    $response = $this->apiCall($endpoint, 'PUT', $params, array_merge($filter_params, $ordered_post_params), $options);
 
     // $this->log('batch() returns', $response, 'info');
     return $response;
@@ -973,8 +1025,8 @@ class WorkbooksApi
   /**
    * Interface as per batch() but if the response is not 'ok' it also logs an error and raises an exception.
    */
-  public function assertBatch($endpoint, &$objs, $params=array(), $method='none') {
-     $response = $this->batch($endpoint, $objs, $params, $method);
+  public function assertBatch($endpoint, &$objs, $params=array(), $method='none', $options=array()) {
+     $response = $this->batch($endpoint, $objs, $params, $method, $options);
      $this->assertResponse($response);
      return $response;
   }
@@ -991,24 +1043,30 @@ class WorkbooksApi
       /*
        * Probably running under the Process Engine: the required values are all available. Do the login now.
        * 
-       * A login failure results in its being logged in the Process Log and if the process is scheduled
-       * then it is queued to be retried later.
+       * A login failure results in it being logged in the Process Log and if the process is scheduled
+       * then it is disabled and a notification raised. Timeouts result in a retry return code.
        */
 
       // Exit codes which mean something to the Workbooks Process Engine.
       $exit_ok = 0;
       $exit_retry = 1;
+      $exit_disable = 2;
 
       try {
         $login_response = $this->login(array());
         if ($login_response['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
           $this->log('Workbooks connection unsuccessful.', $login_response['failure_message'], 'error');
-          exit($exit_retry); // retry later if the Action is scheduled
+          exit($exit_disable); // disable the script and issue notification if the Action is scheduled
         }
       }
       catch(Exception $e) {
-        $this->log('Workbooks connection unsuccessful', $e->getMessage(), 'error');
+        # Handle timeouts differently with a retry.
+        if (preg_match('/operation timed out/i', $e->getMessage())){
+          $this->log("Workbooks connection timed out will re-try later", $e->getMessage(), 'error');
           exit($exit_retry); // retry later if the Action is scheduled
+        }
+        $this->log('Workbooks connection unsuccessful', $e->getMessage(), 'error');
+        exit($exit_disable); // disable the script and issue notification if the Action is scheduled
       }
     }
     
@@ -1030,16 +1088,21 @@ class WorkbooksApi
    *
    * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
    * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
-   * @param Array $post_params optional set of parameters to add to the POST body.
-   * @param String $encoded_post_params optional additional parameters, this time url-encoded, to use for the POST body
-   * @param Boolean $decode_json whether to decode json
+   * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
+   * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
+   * @param Array $options Optional options to pass through to makeRequest(). For backwards-compatability, setting this instead
+   *   to 'true' or 'false' toggles the decoding of JSON
    * @return Array the decoded json response if $decode_json is true (default), or the raw response if not.
    * @throws WorkbooksApiException
    *
    * As usual, check the API documentation for further information.
    */
-  public function apiCall($endpoint, $method, $post_params=array(), $encoded_post_params='', $decode_json=true) {
-    // $this->log('apiCall() called with params', array($endpoint, $method, $post_params, $encoded_post_params, $decode_json));
+  public function apiCall($endpoint, $method, $post_params=array(), $ordered_post_params=array(), $options=array()) {
+    // $this->log('apiCall() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
+
+    if ($options === false) { $options = array('decode_json' => false); } 
+    elseif ($options === true || !is_array($options)) { $options = array('decode_json' => true); }
+    else $options = array_merge(array('decode_json' => true), $options);
 
     // Clients using API Keys normally pass those on each request; otherwise establish a session to span multiple requests.
     if ($this->getApiKey()) {
@@ -1054,7 +1117,7 @@ class WorkbooksApi
       $endpoint .= '.api';
     }
 
-    $sr = self::makeRequest($endpoint, $method, $post_params, $encoded_post_params);
+    $sr = self::makeRequest($endpoint, $method, $post_params, $ordered_post_params, $options);
     $http_status = $sr['http_status'];
     
     if ($http_status <> WorkbooksApi::HTTP_STATUS_OK) {
@@ -1071,7 +1134,7 @@ class WorkbooksApi
       throw $e;
     }
 
-    if ($decode_json) {
+    if ($options['decode_json']) {
       $response = json_decode($sr['http_body'], true);
     } else {
       $response = $sr['http_body'];
@@ -1091,13 +1154,16 @@ class WorkbooksApi
    *
    * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
    * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
-   * @param Array $post_params a set of parameters to add to the POST body.
-   * @param String $encoded_post_params optional additional parameters, this time url-encoded, to use for the POST body
+   * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
+   * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
+   * @param Array $options Optional options, currently only 'content_type' is supported which defaults to 'application/x-www-form-urlencoded'
    * @return Array (Integer the http status, String the response text)
    * @throws WorkbooksApiException
    */
-  public function makeRequest($endpoint, $method, $post_params, $encoded_post_params='') {
-    // $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $encoded_post_params));
+  public function makeRequest($endpoint, $method, $post_params, $ordered_post_params=array(), $options=array()) {
+    
+    // $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
+    $content_type=(isset($options['content_type']) ? $options['content_type'] : WorkbooksApi::FORM_URL_ENCODED);
 
     $start_time = microtime(true);
     $url_params = array(
@@ -1121,28 +1187,85 @@ class WorkbooksApi
     
     if ($method != 'GET' && $this->getAuthenticityToken()) {
       $post_params = array_merge(array(
-         '_authenticity_token' => $this->getAuthenticityToken()
+        '_authenticity_token' => $this->getAuthenticityToken()
       ), $post_params);
     }
     
-    $http_query = http_build_query($post_params, NULL, '&');
-    if ($encoded_post_params != '') {
-      $http_query .= '&' . $encoded_post_params; 
+    $post_fields = NULL;
+    if ($content_type == WorkbooksApi::FORM_URL_ENCODED) {
+      $post_fields = http_build_query($post_params, NULL, '&');
+      if (!empty($ordered_post_params)) {
+        $post_fields .= '&' . (is_array($ordered_post_params) ? implode('&', $ordered_post_params) : $ordered_post_params); 
+      }
     }
+    else { 
+      /** 
+       *  Use 'multipart/form-data' which is efficient for file transfer. Posting arrays of identically
+       *  named parameters alongside files requires a workaround for curl's parameter encoding. Adapted from 
+       *  http://yeehuichan.wordpress.com/2011/08/07/sending-multiple-values-with-the-same-namekey-in-curl-post/
+       */
+      $fields = array();
+      foreach ($post_params as $key => $value) {
+        if (is_array($value)) {
+          foreach ( $value as $v ) {
+            $fields[] = array($key => $v);
+          }
+        } elseif (!is_null($value)) {
+          $fields[] = array($key => $value);
+        }
+      }
+      foreach ($ordered_post_params as $p) {
+        if (is_string($p)) { 
+          list ($key, $value) = preg_split('/=/', $p, 2); 
+          $fields[] = array ($key => $value);
+        }
+        else { $fields[] = $p; }
+      }
+
+      $boundary = '----------------------------form-data-'. sprintf("%08x%08x%08x", rand(0, 0xffffffff), time(), rand(0, 0xffffffff)) ;
+      $content_type = WorkbooksApi::FORM_DATA . '; boundary=' . $boundary;
+
+      $body = array();
+      foreach ($fields as $f) {
+        foreach ($f as $key => $value) {
+          if (is_array($value) && isset($value['tmp_name']) && strpos($value['tmp_name'], '@/') === 0) { // File, as hash
+            $body[] = '--' . $boundary;
+            $body[] = 'Content-Disposition: form-data; name="' . $key . '"; filename="' . basename($value['file_name']) . '"';
+            $body[] = 'Content-Type: ' . $value['file_content_type'];
+            $body[] = '';
+            $body[] = file_get_contents(substr($value['tmp_name'], 1));
+          } else {
+            $body[] = '--' . $boundary;
+            $body[] = 'Content-Disposition: form-data; name="' . $key . '"';
+            $body[] = '';
+            $body[] = $value;
+          }
+        }
+      }
+      $body[] = '--' . $boundary . '--';
+      $body[] = '';
+      
+      $post_fields = join("\r\n", $body);
+    }
+
     $curl_handle = $this->getCurlHandle();
+
+    $headers = array(
+        "Content-type: {$content_type}",
+        'Expect:', // Prevent 'Expect: 100-continue' 
+    );
+    if (is_string($post_fields)) { $headers[] = 'Content-Length: ' . strlen($post_fields); }
 
     curl_setopt_array($curl_handle, $this->curl_options);
     curl_setopt_array($curl_handle, array (
       CURLOPT_URL            => $url,
-      CURLOPT_POSTFIELDS     => $http_query,
+      CURLOPT_HTTPHEADER     => $headers,
+      CURLOPT_POSTFIELDS     => $post_fields,
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_HEADER         => true,
       CURLOPT_FOLLOWLOCATION => false,
       CURLOPT_POST           => true,
-      CURLOPT_HTTPHEADER     => array(
-        'Content-type: application/x-www-form-urlencoded',
-        'Expect:',                                          // Prevent 'Expect: 100-continue' 
-    )));
+    ));
 
     $cookie = $this->getSessionCookie();
     if (isset($cookie)) {
@@ -1215,7 +1338,7 @@ class WorkbooksApi
    * @param $obj_array Array Objects to be encoded, *modified in place*
    * @param $method String The method (CREATE/UPDATE/DELETE) which is to be used if 
    *   not specified for an object.
-   * @return String a set of parameters representing the filter which is required to 
+   * @return Array a set of parameters representing the filter which is required to 
    *   define the working set of objects.
    */
   protected function encodeMethodParams(&$obj_array, $method) {
@@ -1286,11 +1409,14 @@ class WorkbooksApi
       }
     }
     
+    $filter = array();
     // Must include a filter to 'select' the set of objects being operated upon
     if (count($filter_ids) > 0) {
-      $filter = '_fm=or';
+      $filter[]= '_fm=or';
       foreach ($filter_ids as &$filter_id) {
-        $filter .= '&_ff[]=id&_ft[]=eq&_fc[]=' . $filter_id;
+        $filter[]= '_ff[]=id';
+        $filter[]= '_ft[]=eq';
+        $filter[]= '_fc[]=' . $filter_id;
       }
     }
       
@@ -1302,12 +1428,13 @@ class WorkbooksApi
    * The Workbooks wire protocol requires that each key which is used in any object be
    * present in all objects, and delivered in the right order. Callers of this binding
    * library will omit keys from some objects and not from others. Some special values
-   * are used in this encoding - :null_value and :no_value.
+   * are used in this encoding - :null_value: and :no_value:.
    *
    * @param $obj_array Array Objects to be encoded
-   * @return String the encoded array, suitable for passing to Workbooks
+   * @param $url_encode Boolean Whether to URL encode them, defaults to true
+   * @return Array the (encoded) set of objects suitable for passing to Workbooks
    */
-  protected function fullSquare($obj_array) {
+  protected function fullSquare($obj_array, $url_encode=true) {
     // $this->log('fullSquare() called with params', $obj_array);
     
     // Get the full set of keys
@@ -1321,7 +1448,7 @@ class WorkbooksApi
     asort($unique_keys);
 
     // The full square array is one with a value for every key in every object
-    $url_encoded_objects = array();
+    $retval = array();
     foreach ($obj_array as &$obj) {
       foreach ($unique_keys as $key) {
         if (array_key_exists($key, $obj) && $obj[$key] == NULL) {
@@ -1334,23 +1461,27 @@ class WorkbooksApi
         
         $unnested_key = $this->unnestKey($key);
         if (is_array($value)) {
-          $new_val = "[";
-          foreach ($value as $val) {
-            if ($new_val != "[") {
-              $new_val .= ",";
-            }
-            $new_val .= $val;
+          if (isset($value['tmp_name']) && strpos($value['tmp_name'], '@/') === 0) {
+            // The value is a file so retain it as a hash (tmp_name, file_name, file_content_type)
+            $retval[] = array($unnested_key . '[]' => $value);
           }
-          $new_val .= "]";
-          $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($new_val));
+          else {
+            $new_val = "[";
+            foreach ($value as $val) {
+              if ($new_val != "[") {
+                $new_val .= ",";
+              }
+              $new_val .= $val;
+            }
+            $new_val .= "]";
+            $retval[] = ($url_encode ? (urlencode($unnested_key) . '[]=' . urlencode($new_val)) : "{$unnested_key}[]={$new_val}");
+          }
         } else {
-          $url_encoded_objects[] = (urlencode($unnested_key) . '[]=' . urlencode($value));
+          $retval[] = ($url_encode ? (urlencode($unnested_key) . '[]=' . urlencode($value)) : "{$unnested_key}[]={$value}");
         }
       }
     }
     
-    // $this->log('fullSquare() array for return', $url_encoded_objects);
-    $retval = implode('&', $url_encoded_objects);
     // $this->log('fullSquare() returns', $retval);
     return $retval;
   }
@@ -1393,7 +1524,7 @@ class WorkbooksApi
     $url = $this->getService();
     
     if ($path[0] !== '/') {
-        $url .= '/';
+      $url .= '/';
     }
     $url .= $path;
 
@@ -1435,8 +1566,11 @@ if (isset($params) &&
     'verify_peer'         => false,
   ));
 
-  // Setup PHP special arrays: $_SERVER, $_GET, $_POST, $_COOKIE.
+  // Setup PHP special arrays: $_SERVER, $_GET, $_POST, $_COOKIE, $_FILES.
+  $_GET = array();
   $_POST = array();
+  $_COOKIE = array();
+  $_FILES = array();
   foreach(array_keys($params) as $k) {
     if (preg_match('/^_server_(.*)/m', $k, $var_name)) {
       $_SERVER[$var_name[1]] = $params[$k];
@@ -1449,6 +1583,35 @@ if (isset($params) &&
     }
     if (preg_match('/^_cookie_(.*)/m', $k, $var_name)) {
       $_COOKIE[$var_name[1]] = $params[$k];
+    }
+    if (preg_match('/^_file_(.*)_name/m', $k, $var_name)) {
+      $field_name = $var_name[1];
+      $file_data = array('name' => @$params["_file_{$field_name}_name"]);
+      $file_data['type'] = (@$params["_file_{$field_name}_type"]);
+      $file_data['size'] = (@$params["_file_{$field_name}_size"]);
+      if (isset($params["_file_{$field_name}_data"])) {
+        $tempnam = tempnam('', 'upload-');
+        $fp = fopen($tempnam, 'w');
+        $res = fwrite($fp, base64_decode($params["_file_{$field_name}_data"]));
+        fclose($fp);
+        if (filesize($tempnam) <> (int)$file_data['size']) {
+          $file_data['error'] = UPLOAD_ERR_PARTIAL;
+        }
+        elseif ($res === FALSE) {
+          $file_data['error'] = UPLOAD_ERR_CANT_WRITE;
+        }
+        elseif ($res == 0) {
+          $file_data['error'] = UPLOAD_ERR_NO_FILE;
+        }
+        else {
+          $file_data['tmp_name'] = $tempnam;
+          $file_data['error'] = UPLOAD_ERR_OK;
+        }
+      }
+      else {
+        $file_data['error'] = UPLOAD_ERR_INI_SIZE;
+      }
+      $_FILES[$field_name] = $file_data;
     }
   } // foreach $params
 

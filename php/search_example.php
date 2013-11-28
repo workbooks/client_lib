@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to search for records using
  *   their most significant fields via a thin PHP wrapper
  *
- *   Last commit $Id: search_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: search_example.php 19136 2013-06-13 13:52:23Z swhitehouse $
  *
  *       The MIT License
  *
@@ -38,18 +38,57 @@ require 'test_login_helper.php';
  * We now have a valid logged-in session. This script does a series of 'CRUD' (Create, Read, Update, Delete) operations.
  */
 
-
 /*
- * Do the search
+ * Do a full search
  */
 $response = $workbooks->assertGet('searchables.api', 
-	array(
-		'search' => 'James', 
-		'_sort' => 'relevance', 
-		'_dir' => 'DESC' 
-	)
+  array(
+    'search' => 'James', 
+    '_sort' => 'relevance', 
+    '_dir' => 'DESC' 
+  )
 );
+
 $workbooks->log('Fetched objects', $response['data']);
+if ( $response['total'] <= 0 ||  $response['total'] >= 100 ) {
+  $workbooks->log('Received an unexpected number of rows - expected between 1 and 100 and got ', array ($response['total']));
+  exit(1);
+}
+
+/*
+ * Perform a quick search
+ */
+$response = $workbooks->assertGet('searchables.api',
+  array(
+    'search' => 'J.K.',
+    'quick_search' => 'true',
+    '_sort' => 'relevance',
+    '_dir' => 'DESC'
+  )
+);
+
+$workbooks->log('Fetched objects', $response['data']);
+if ( $response['total'] <= 0 ||  $response['total'] >= 100 ) {
+  $workbooks->log('Received an unexpected number of rows - expected between 1 and 100 and got ', array ($response['total']));
+  exit(1);
+}
+
+/*
+ * Perform a full serach that would return > 100 rows (only the first 100 will be returned)
+ */
+$response = $workbooks->assertGet('searchables.api',
+  array(
+    'search' => 'a b',
+    '_sort' => 'relevance',
+    '_dir' => 'DESC'
+  )
+);
+
+$workbooks->log('Fetched objects', $response['data']);
+if ($response['total'] != 100 ) {
+  $workbooks->log('Received an unexpected number of rows - expected 100 and got', $response['total']);
+  exit(1);
+}
 
 testExit($workbooks);
 
