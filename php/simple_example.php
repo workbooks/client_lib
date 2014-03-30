@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API via a thin PHP wrapper
  *
- *   Last commit $Id: simple_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: simple_example.php 21375 2014-03-11 10:17:36Z jkay $
  *
  *       The MIT License
  *
@@ -158,9 +158,7 @@ $filter_limit_select = array(
   '_limit'               => '100',                                   //   fetch up to 100 records
   '_sort'                => 'id',                                    // Sort by 'id'
   '_dir'                 => 'ASC',                                   //   in ascending order
-  '_ff[]'                => 'main_location[county_province_state]',  // Filter by this column
-  '_ft[]'                => 'ct',                                    //   containing
-  '_fc[]'                => 'Berkshire',                             //   'Berkshire'
+  '_filters[]'           => array('main_location[county_province_state]', 'bg', 'Berkshire'), // 'begins with'
   '_select_columns[]'    => array(                                   // An array, of columns to select
     'id',
     'lock_version',
