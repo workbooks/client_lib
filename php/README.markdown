@@ -328,7 +328,7 @@ Licensed under the MIT License
 
 > The MIT License
 > 
-> Copyright (c) 2008-2012, Workbooks Online Limited.
+> Copyright (c) 2008-2014, Workbooks Online Limited.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal

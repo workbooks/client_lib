@@ -7,7 +7,7 @@
  *   A demonstration of using the Workbooks API via a thin PHP wrapper to store and retrieve
  *   state.
  *
- *   Last commit $Id: api_data_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: api_data_example.php 21910 2014-05-07 09:58:02Z jkay $
  *
  *       The MIT License
  *
@@ -49,14 +49,14 @@ $test_values = array(
   'the answer'              => 42,
   'poppins'                 => 'Supercalifragilisticexpealidocious',
   'null'                    => NULL,
-  'ten thousand characters' => str_repeat('123456789 ', 1000 ),
+  'hundred thousand characters' => str_repeat('123456789 ', 10000 ),
   'multibyte_characters'    => 'д е ё ж з и й к л  字 字',
 );
 $create_api_data = array(
   array ('key' => 'api_data_example: the answer',               'value' => $test_values['the answer']),
   array ('key' => 'api_data_example: poppins',                  'value' => $test_values['poppins']),
   array ('key' => 'api_data_example: null',                     'value' => $test_values['null']),
-  array ('key' => 'api_data_example: ten thousand characters',  'value' => $test_values['ten thousand characters']),
+  array ('key' => 'api_data_example: hundred thousand characters',  'value' => $test_values['hundred thousand characters']),
   array ('key' => 'api_data_example: multibyte characters',     'value' => $test_values['multibyte_characters']),
 );
 $response = $workbooks->assertCreate('automation/api_data', $create_api_data);
@@ -93,7 +93,7 @@ $get_api_data = array(
   '_fc[]'                => array(
     'api_data_example: the answer',               
     'api_data_example: null',                     
-    'api_data_example: ten thousand characters',   
+    'api_data_example: hundred thousand characters',   
     'api_data_example: multibyte characters',     
   ),
 );
