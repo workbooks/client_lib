@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 21028 2014-02-07 17:36:58Z gbarlow $
+ *   Last commit $Id: workbooks_api.php 22139 2014-05-28 21:29:09Z jkay $
  *
  *       The MIT License
  *
@@ -86,7 +86,7 @@ class WorkbooksApiException extends Exception
 class WorkbooksApi
 {
 
-  const VERSION = '1.2';
+  const API_VERSION = 1; // Used to select the default Workbooks server-side behaviour
 
   /**
    * Instance variables
@@ -100,6 +100,7 @@ class WorkbooksApi
   protected $logical_database_id = NULL;
   protected $database_instance_id = NULL;
   protected $authenticity_token = NULL;
+  protected $api_version = WorkbooksApi::API_VERSION;
   protected $api_logging_key = NULL; // when available requests server-side logging of API requests/responses
   protected $api_logging_seq = 0;    // used for server-side logging of API requests/responses
   protected $login_state = false;    // true => logged in
@@ -155,6 +156,7 @@ class WorkbooksApi
    *   - session_id: a sessionID to reconnect to
    *   - logical_database_id: the databaseID which the session_id is associated with
    *   - api_logging_key: if specified this is used to identify a Process Log to attach API logging records to
+   *   - api_version: used to request a specific server-side behaviour. Normally this should be left as API_VERSION
    *   - connect_timeout: how long to wait for a connection to be established in seconds (default: 20)
    *   - request_timeout: how long to wait for a response in seconds (default: 20)
    *   - verify_peer: whether to verify the peer's SSL certificate. Set this to false for some test environments but do not 
@@ -210,6 +212,10 @@ class WorkbooksApi
     if (isset($params['api_logging_key'])) {
       $this->setApiLoggingKey($params['api_logging_key']);
       $this->resetApiLoggingSeq();
+    }
+    
+    if (isset($params['api_version'])) {
+      $this->setApiVersion($params['api_version']);
     }
     
     if (isset($params['verify_peer'])) {
@@ -348,6 +354,26 @@ class WorkbooksApi
   public function getUserAgent() {
     return $this->user_agent;
   }
+
+  /**
+   * Set the API Version.
+   *
+   * @param Integer $api_version the API Version to use
+  **/
+  public function setApiVersion($api_version) {
+    $this->api_version = $api_version;
+    return $this;
+  }
+
+  /**
+   * Get the API Version.
+   *
+   * @return Integer the API Version in use
+  **/
+  public function getApiVersion() {
+    return $this->api_version;
+  }
+
 
   /**
    * Set the connect timeout.
@@ -824,6 +850,7 @@ class WorkbooksApi
         '_application_name'          => $this->getApplicationName(),
         'json'                       => 'pretty',
         '_strict_attribute_checking' => true,
+        'api_version'               => $this->getApiVersion(),
     ), $params);
     
     $sr = self::makeRequest('login.api', 'POST', $params);
@@ -1116,6 +1143,7 @@ class WorkbooksApi
     // Clients using API Keys normally pass those on each request; otherwise establish a session to span multiple requests.
     if ($this->getApiKey()) {
       $post_params['api_key'] = $this->getApiKey();
+      $post_params['_api_version'] = $this->getApiVersion();
     } else {
       $this->ensureLogin();
     }
