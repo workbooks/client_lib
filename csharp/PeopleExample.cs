@@ -116,7 +116,7 @@ namespace PeopleExampleApplication
 					twoPeople.Add(person1);
 					twoPeople.Add(person2);
 
-					WorkbooksApiResponse responseUpdate = workbooks.assertUpdate("crm/people", twoPeople, null, null);
+					workbooks.assertUpdate("crm/people", twoPeople, null, null);
 					Console.WriteLine("Updated people. " );
 					//workbooks.log("update_two_people", new Object[] {responseUpdate.getFirstAffectedObjects()});
 				}

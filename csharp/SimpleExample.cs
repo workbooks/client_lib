@@ -160,7 +160,7 @@ public class SimpleExample
       createdObjectIdLockVersion.Add((Dictionary<string, object>)objectIdLockVersion[1]);
       //***************** DELETE THE REMAIIG ORGANISATIONS CREATED IN THIS CLASS
       if (doDelete) {         
-        WorkbooksApiResponse responseDelete = workbooks.assertDelete("crm/organisations", createdObjectIdLockVersion, null, null);
+        workbooks.assertDelete("crm/organisations", createdObjectIdLockVersion, null, null);
         workbooks.log("Delete Organisations ");
       }
     } catch(Exception e) {

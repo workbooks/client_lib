@@ -125,7 +125,7 @@ namespace ApiWrapper
 
 			// Upload the files to the Note
 			try {
-				WorkbooksApiResponse response = workbooks.assertCreate("resource_upload_files", createUploadsList, null, options);
+				workbooks.assertCreate("resource_upload_files", createUploadsList, null, options);
 				Console.WriteLine("Files Uploaded");
 			} catch(Exception e) {
 				Console.WriteLine("Exception while uploading files",  e);
