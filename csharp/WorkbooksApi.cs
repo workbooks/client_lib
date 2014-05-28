@@ -188,9 +188,10 @@ namespace WorkbooksApiApplication
   } // End of WorkbooksApiResponse class
 
   //****************** Beginning of the WorkbooksApi class
+  #pragma warning disable 0219, 0168  // Disable the warnings about variables never used
   public class WorkbooksApi
   {
-    public const string VERSION = "1.2";
+    public const int API_VERSION = 1;
 
     protected string SessionId { get; set; }
 
@@ -199,6 +200,7 @@ namespace WorkbooksApiApplication
     protected string LogicalDatabaseId { get; set; }
     protected string databaseInstanceId;
     protected string AuthenticityToken { get; set; }
+    protected int apiVersion = API_VERSION;
     protected bool loggedIn = false;
     protected bool autoLogout = true;   // true => call logout() in destroy hook
     protected string ApplicationName { get; set; }
@@ -251,6 +253,15 @@ namespace WorkbooksApiApplication
       }
       set {
         databaseInstanceId = value;
+      }
+    }
+
+    public int ApiVersion {
+      get {
+        return apiVersion;
+      }
+      set {
+        apiVersion = value;
       }
     }
 
@@ -370,7 +381,9 @@ namespace WorkbooksApiApplication
       if (loginParams.ContainsKey("jsonPretty")) {
         JsonPretty = (string)loginParams["jsonPretty"];
       }
-
+      if (loginParams.ContainsKey("api_version")) {
+        ApiVersion = (int) loginParams["api_version"];
+      }
     }
 
     public void log(String msg) {
@@ -777,6 +790,7 @@ namespace WorkbooksApiApplication
       // establish a session to span multiple requests.
       if (ApiKey != null) {
         post_params.Add("api_key", ApiKey);
+        post_params.Add("_api_version", ApiVersion);
       } else {
         this.ensureLogin();
       }
@@ -980,6 +994,7 @@ namespace WorkbooksApiApplication
       paramsObj.Add("_application_name", ApplicationName);
       paramsObj.Add("json", JsonPretty);
       paramsObj.Add("_strict_attribute_checking", Boolean.TrueString);
+      paramsObj.Add("api_version", ApiVersion);
 
       Dictionary<string, object> serviceResponse = makeRequest("login.api", "POST", paramsObj, null, null);
       int http_status = 0;
