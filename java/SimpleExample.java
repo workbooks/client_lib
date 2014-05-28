@@ -9,7 +9,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *  A demonstration of using the Workbooks API via a thin Java wrapper
  * 	
  *  License: www.workbooks.com/mit_license
- * 	Last commit $Id: SimpleExample.java 22037 2014-05-19 08:58:34Z bviroja $
+ * 	Last commit $Id: SimpleExample.java 22080 2014-05-21 12:53:52Z bviroja $
  *
  */
 public class SimpleExample {
@@ -85,18 +85,18 @@ public class SimpleExample {
 			org3.clear();
 			org4.clear();
 			
-			org2.put("id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
-			org2.put("lock_version", ((HashMap)objectIdLockVersion.get(0)).get("lock_version"));
+			org2.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("id"));
+			org2.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("lock_version"));
 			org2.put("name", "Freedom & Light Unlimited");
 			org2.put("main_location[postcode]", "RG66 6RG");
 			org2.put("main_location[street_address]", "199 High Street");
 			
-			org3.put("id", ((HashMap)objectIdLockVersion.get(1)).get("id"));
-			org3.put("lock_version", ((HashMap)objectIdLockVersion.get(1)).get("lock_version"));
+			org3.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("id"));
+			org3.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("lock_version"));
 			org3.put("name", "Freedom Power");
 			
-			org4.put("id", ((HashMap)objectIdLockVersion.get(2)).get("id"));
-			org4.put("lock_version", ((HashMap)objectIdLockVersion.get(2)).get("lock_version"));
+			org4.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(2)).get("id"));
+			org4.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(2)).get("lock_version"));
 			org4.put("name", "Sea Recruitment");
 			
 			multipleOrganisations.add(org2);
@@ -125,17 +125,17 @@ public class SimpleExample {
 	    createAction.put("main_location[town]"                  , "Beading");
 	    
 	    updateAction.put("method", "UPDATE");
-	    updateAction.put("id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
-			updateAction.put("lock_version", ((HashMap)objectIdLockVersion.get(0)).get("lock_version"));
+	    updateAction.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("id"));
+			updateAction.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("lock_version"));
 			updateAction.put("name", "Lights \'R Us");
 			updateAction.put("main_location[postcode]", null);
 	    
 			deleteAction.put("method", "DELETE");
-			deleteAction.put("id", ((HashMap)objectIdLockVersion.get(1)).get("id"));
-			deleteAction.put("lock_version", ((HashMap)objectIdLockVersion.get(1)).get("lock_version"));
+			deleteAction.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("id"));
+			deleteAction.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("lock_version"));
 			
-			deleteAnotherAction.put("id", ((HashMap)objectIdLockVersion.get(2)).get("id"));
-			deleteAnotherAction.put("lock_version", ((HashMap)objectIdLockVersion.get(2)).get("lock_version"));
+			deleteAnotherAction.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(2)).get("id"));
+			deleteAnotherAction.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(2)).get("lock_version"));
 			deleteAnotherAction.put("method", "DELETE");
 
 			batchActions.add(createAction);
@@ -163,8 +163,8 @@ public class SimpleExample {
 			workbooks.log("createOrganisations Single: ", new Object[] {response.getFirstAffectedObject()});
 			ArrayList<HashMap<String, Object>> createdObjectIdLockVersion = workbooks.idVersions(response);
 			
-			createdObjectIdLockVersion.add((HashMap)objectIdLockVersion.get(0));
-			createdObjectIdLockVersion.add((HashMap)objectIdLockVersion.get(1));
+			createdObjectIdLockVersion.add((HashMap<String, Object>)objectIdLockVersion.get(0));
+			createdObjectIdLockVersion.add((HashMap<String, Object>)objectIdLockVersion.get(1));
 			//***************** DELETE THE REMAIIG ORGANISATIONS CREATED IN THIS CLASS
 			if (doDelete) {					
 						WorkbooksApiResponse responseDelete = workbooks.assertDelete("crm/organisations", createdObjectIdLockVersion, null, null);

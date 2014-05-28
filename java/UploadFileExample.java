@@ -18,7 +18,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *	A demonstration of using the Workbooks API via a thin Java wrapper to upload and download files
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: UploadFileExample.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: UploadFileExample.java 22080 2014-05-21 12:53:52Z bviroja $
  */
 
 /*
@@ -89,7 +89,7 @@ public class UploadFileExample {
 		//  Create a note associated with that organisation, to which we will attach files.
 		HashMap<String, Object> createNote = new HashMap<String, Object> ();
 		
-		createNote.put("resource_id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
+		createNote.put("resource_id", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("id"));
 		createNote.put("resource_type", "Private::Crm::Organisation");
 		createNote.put("subject", "Test Note");
 		createNote.put("text", "This is the body of the test note. It is <i>HTML</i>");
@@ -99,7 +99,7 @@ public class UploadFileExample {
 		int note_id = 0;		
 		try {
 			objectIdLockVersion = workbooks.idVersions(workbooks.assertCreate("notes", multipleNotes, null, null));
-			note_id = Integer.parseInt(((HashMap)objectIdLockVersion.get(0)).get("id").toString());
+			note_id = Integer.parseInt(((HashMap<String, Object>)objectIdLockVersion.get(0)).get("id").toString());
 		} catch (Exception e) {
 			workbooks.log("Error while creating the Note. ", new Object[] {e.getMessage()});
 			e.printStackTrace();

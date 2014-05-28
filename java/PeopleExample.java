@@ -4,8 +4,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Random;
-
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 
@@ -17,7 +15,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *  were synchronising with an external service.
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: PeopleExample.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: PeopleExample.java 22080 2014-05-21 12:53:52Z bviroja $
  */
 
 public class PeopleExample {
@@ -39,10 +37,7 @@ public class PeopleExample {
 		
 		PeopleExample peopleEx = new PeopleExample();
 		peopleEx.create_two_people(true, false);
-		peopleEx.getAllPeopleInPastFewWeeks();
-		peopleEx.deletePeople();
-		
-		peopleEx.getPeople();
+		peopleEx.getAllPeopleInPastFewWeeks();		
 		
 		login.testExit(workbooks, 0);
 	}
@@ -123,12 +118,12 @@ public class PeopleExample {
 				person1.clear();
 				person2.clear();
 				
-				person1.put("id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
-				person1.put("lock_version", ((HashMap)objectIdLockVersion.get(0)).get("lock_version"));
+				person1.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("id"));
+				person1.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(0)).get("lock_version"));
 				person1.put("main_location[email]", "richards@one.com");
 				
-				person2.put("id", ((HashMap)objectIdLockVersion.get(1)).get("id"));
-				person2.put("lock_version", ((HashMap)objectIdLockVersion.get(1)).get("lock_version"));
+				person2.put("id", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("id"));
+				person2.put("lock_version", ((HashMap<String, Object>)objectIdLockVersion.get(1)).get("lock_version"));
 				person2.put("main_location[email]", "steve@stevie.com");
 				
 				twoPeople.add(person1);
@@ -137,6 +132,8 @@ public class PeopleExample {
 				WorkbooksApiResponse responseUpdate = workbooks.assertUpdate("crm/people", twoPeople, null, null);
 				workbooks.log("update_two_people", new Object[] {responseUpdate.getFirstAffectedObject()});
 			}
+			getPeople();
+
 			//***************** DELETE THE TWO CREATED PEOPLE
 			if (doDelete) {
 				objectIdLockVersion = workbooks.idVersions(response);
@@ -153,33 +150,6 @@ public class PeopleExample {
 	
 	}
 	
-	
-	public void deletePeople() {
-		// Get the people to delete
-		WorkbooksApiResponse response = getPeople();
-		
-		JsonArray allData = response.getData();
-		ArrayList retval = new ArrayList();
-		
-		if (allData.size() > 0) {
-			for (int i = 0; i < allData.size(); i++) {
-				JsonObject data = allData.getJsonObject(i);
-				HashMap<String, Object> objectIdVersions = new HashMap<String, Object>();
-				objectIdVersions.put("id", data.get("id"));
-				objectIdVersions.put("lock_version", data.get("lock_version"));
-				retval.add(objectIdVersions);
-			}
-			try {
-				WorkbooksApiResponse responseDelete = workbooks.assertDelete("crm/people", retval, null, null);
-				workbooks.log("delete_two_people", new Object[] {responseDelete.getFirstAffectedObject()});
-			} catch (Exception wbe) {
-				System.out.println("Error while deleting the people record: " + wbe.getMessage());
-				wbe.printStackTrace();
-				login.testExit(workbooks, 1);
-			}
-		}
-	}
-
 	/*
 	 * List up to the first hundred people matching our 'created_through' attribute value, just selecting a few columns to retrieve
 	 */
@@ -192,15 +162,14 @@ public class PeopleExample {
 		filter_limit_select.put("_limit", "100");
 		filter_limit_select.put("_sort", "id");
 		filter_limit_select.put("_dir", "ASC");
-		filter_limit_select.put("_ff[]", "name");
-		filter_limit_select.put("_ft[]", "bg");
-		filter_limit_select.put("_fc[]", "Alex");
+		filter_limit_select.put("_ff[]", "created_through");
+		filter_limit_select.put("_ft[]", "eq");
+		filter_limit_select.put("_fc[]", "java_test_client");
 		filter_limit_select.put("_select_columns[]", columns);
 		try {
 			WorkbooksApiResponse response = workbooks.assertGet("crm/people", filter_limit_select, null);
-//			System.out.println("Response" + response.toString());
 			JsonArray allData = response.getData();
-			
+			workbooks.log("getPeople Total: ", new Object[] {response.getTotal()});
 			workbooks.log("getPeople", new Object[] {response.getFirstData()});
 			
 			for (int i = 0; i < allData.size(); i++) {
@@ -225,7 +194,7 @@ public class PeopleExample {
 	 * the technique you would use, perhaps only requesting records which were updated since the
 	 * time of the last fetch.
 	 */
-
+	@SuppressWarnings("unchecked")
 	public HashMap<String, Object> getAllPeopleInPastFewWeeks() {
 		
 		Date currentDate = new Date();
@@ -303,13 +272,13 @@ public class PeopleExample {
 				start += fetched;
 			  
 		  } catch(Exception e) {
-			  workbooks.log("getAllWithinTwentyWeeks error", new Object[] {e}, "error", 4096);
+			  workbooks.log("getAllPeopleInPastFewWeeks error", new Object[] {e}, "error", 4096);
 			  e.printStackTrace();
 			  login.testExit(workbooks, 1);
 		  }
 		}
 		
-		workbooks.log("getAllWithinTwentyWeeks", new Object[] {all_records, all_records.size()});
+		workbooks.log("getAllPeopleInPastFewWeeks: Total", new Object[] {all_records.size()});
 		
 		
 		return null;

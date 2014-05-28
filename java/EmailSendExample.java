@@ -11,7 +11,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *  created in a raw form ("rfc822").
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: EmailSendExample.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: EmailSendExample.java 22080 2014-05-21 12:53:52Z bviroja $
  */
 public class EmailSendExample {
 
@@ -94,8 +94,8 @@ public class EmailSendExample {
 			 * Now change the status to send it
 			 */
 			HashMap<String, Object> updateEmail = new HashMap<String, Object> ();
-			updateEmail.put("id", ((HashMap)idVersionObjects.get(0)).get("id"));
-			updateEmail.put("lock_version",((HashMap)idVersionObjects.get(0)).get("lock_version"));
+			updateEmail.put("id", ((HashMap<String, Object>)idVersionObjects.get(0)).get("id"));
+			updateEmail.put("lock_version",((HashMap<String, Object>)idVersionObjects.get(0)).get("lock_version"));
 			updateEmail.put("status", "SEND");
 
 			ArrayList<HashMap<String, Object> > updateEmailList = new ArrayList<HashMap<String,Object>>();
