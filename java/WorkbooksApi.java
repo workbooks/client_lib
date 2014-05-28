@@ -24,7 +24,6 @@ import java.util.logging.Formatter;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
-
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
@@ -38,7 +37,7 @@ import javax.xml.bind.DatatypeConverter;
 /** A Java wrapper for the Workbooks API 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: WorkbooksApi.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: WorkbooksApi.java 22139 2014-05-28 21:29:09Z jkay $
  *
  *
  *  Significant methods in the class Workbooks:
@@ -60,17 +59,16 @@ public class WorkbooksApi {
 	/**
 	 * Exception class - Thrown when an API call returns an exception.
 	 */
+	@SuppressWarnings("unchecked")
 	class WorkbooksApiException extends Exception {
-		/**
-		 * The result from the API server that represents the exception information.
-		 */
-//		protected HashMap<String, Object> result;
+
+		private static final long serialVersionUID = -8327935446470535913L;
 
 		/**
 		 * Make a new API Exception with the given result.
 		 * 
 		 * @param HashMap
-		 *          result - the result from the API server
+		 *        result - the result from the API server
 		 */
 		public WorkbooksApiException(HashMap<String, Object> result) {
 			int code = 0;
@@ -82,8 +80,7 @@ public class WorkbooksApi {
 			if (result.containsKey("error_code")) {
 				code = (Integer) result.get("error_code");
 			}
-			// If we have access to the Workbooks API object, log all that we
-			// can
+			// If we have access to the Workbooks API object, log all that we can
 			if (result.containsKey("workbooks_api")) {
 				workbooks_api = (WorkbooksApi) result.get("workbooks_api");
 
@@ -110,7 +107,9 @@ public class WorkbooksApi {
 		public int getTotal() {
 			if (response != null) {
 				JsonObject responseData = (JsonObject) response.get("response");
-				total = responseData.getInt("total");
+				if (responseData != null) {
+					total = responseData.getInt("total");
+				}
 			}
 			return total;
 		}
@@ -196,12 +195,7 @@ public class WorkbooksApi {
 				} else if (!responseData.getBoolean("success")) {
 					return "failed"; // Something was quite wrong, not just a
 					// validation failure
-				} else if (responseData.containsKey("errors")) { // TODO:
-					// check
-					// what type
-					// the
-					// errors
-					// object is
+				} else if (responseData.containsKey("errors")) {
 					status = "not-ok";
 				} else if (!responseData.containsKey("affected_object_information") || !responseData.get("affected_object_information").getClass().isArray()) {
 					return "ok";
@@ -265,7 +259,7 @@ public class WorkbooksApi {
 	
 	//****************** Beginning of the WorkbooksApi class
 	
-	public static final String VERSION = "1.2";
+	public static final int API_VERSION = 1;
 
 	/**
 	 * Instance variables
@@ -276,13 +270,12 @@ public class WorkbooksApi {
 	protected String logical_database_id = null;
 	protected String database_instance_id = null;
 	protected String authenticity_token = null;
+	protected int api_version = API_VERSION;
 	protected boolean login_state = false; // true => logged in
-	protected boolean auto_logout = true; // true => call logout() in
-	// destroy hook
+	protected boolean auto_logout = true; // true => call logout() in destroy hook
 	protected String application_name = null;
 	protected String user_agent = null;
 	protected int connect_timeout = 120; // 2 minutes
-	protected int request_timeout = 120;
 	protected boolean verify_peer = true; // false is not correct for
 	// Production use.
 	protected String service = "https://secure.workbooks.com";
@@ -360,9 +353,6 @@ public class WorkbooksApi {
 		if (params.containsKey("connect_timeout")) {
 			this.setConnect_timeout(Integer.parseInt((String) params.get("connect_timeout")));
 		}
-		if (params.containsKey("request_timeout")) {
-			this.setRequest_timeout(Integer.parseInt((String) params.get("request_timeout")));
-		}
 		if (params.containsKey("api_key")) {
 			this.setApi_key((String) params.get("api_key"));
 		}
@@ -381,17 +371,10 @@ public class WorkbooksApi {
 		if (params.containsKey("jsonPretty")) {
 			this.setJsonPretty((String)params.get("jsonPretty"));
 		}
-		
+		if (params.containsKey("api_version")) {
+			this.setApi_version(Integer.parseInt((String)params.get("api_version")));
+		}
 	}
-
-	/**
-	 * Shutdown the Workbooks API. Logout will happen automatically when this goes out of scope unless you call setAutoLogout to change its behaviour.
-	 */
-	/*
-	 * public function __destruct() { if (isset($this->curl_handle)){ if ($this->getLoginState() && $this->getAutoLogout()) { $this->logout(); }
-	 * $this->destroyCurlHandle(); } }
-	 */
-
 	/**
 	 * Get the session cookie
 	 * 
@@ -548,7 +531,8 @@ public class WorkbooksApi {
 		params.put("_application_name", this.getApplication_name());
 		params.put("json", this.getJsonPretty());
 		params.put("_strict_attribute_checking", Boolean.toString(true));
-
+		params.put("api_version", this.getApi_version());
+		
 		HashMap<String, Object> serviceResponse = makeRequest("login.api", "POST", params, null, null);
 		int http_status = 0;
 		String response = null;
@@ -687,6 +671,7 @@ public class WorkbooksApi {
 	 * @return HashMap (Integer the http status, String the response text)
 	 * @throws WorkbooksApiException
 	 */
+	@SuppressWarnings("unchecked")
 	public HashMap<String, Object> makeRequest(String endpoint, String method, HashMap<String, Object> post_params, ArrayList<Object> ordered_post_params,
 			HashMap<String, Object> options) throws WorkbooksApiException {
 
@@ -735,7 +720,7 @@ public class WorkbooksApi {
 			}
 			try {
 				if (method.equalsIgnoreCase("GET")) {
-					url += "?" + post_fields;
+					url += "&" + post_fields;
 				}
 				connection = createHttpConnectionObject(url, method, post_fields, content_type);
 //				this.log("post_fields", new Object[] {post_fields});
@@ -796,8 +781,6 @@ public class WorkbooksApi {
 				connection = createHttpConnectionObject(url, method, fields.toString(), content_type);
 				dataOutputStream = new DataOutputStream(connection.getOutputStream());
 
-				ArrayList body = new ArrayList();
-
 				for (HashMap<String, Object> field : fields) {
 					for (String fieldKey : field.keySet()) {
 						Object fieldValue = field.get(fieldKey);
@@ -825,7 +808,6 @@ public class WorkbooksApi {
 								try {
 									File tempFile = new File(tmpFile);
 									FileInputStream fileInputStream = new FileInputStream(tempFile);
-									int read = 0;
 									byte[] bytesRead = new byte[(int) tempFile.length()];
 									fileInputStream.read(bytesRead);
 									fileInputStream.close();
@@ -1079,13 +1061,14 @@ public class WorkbooksApi {
 		// establish a session to span multiple requests.
 		if (this.getApi_key() != null) {
 			post_params.put("api_key", this.getApi_key());
+			post_params.put("_api_version", String.valueOf(this.getApi_version()));
 		} else {
 			this.ensureLogin();
 		}
 
 		// API calls are always to a ".api" endpoint; the caller does not have to include this.
 		// Including ANY extension will prevent ".api" from being appended.
-		if (!endpoint.matches("\\.\\w{3,4}")) {
+		if (!endpoint.matches(".*\\.\\w{3,4}")) {
 			endpoint += ".api";
 		}
 		HashMap<String, Object> serviceResponse = this.makeRequest(endpoint, method, post_params, ordered_post_params, options);
@@ -1141,6 +1124,7 @@ public class WorkbooksApi {
    *
    * As usual, check the API documentation for further information.
  **/
+	@SuppressWarnings("unchecked")
 	public WorkbooksApiResponse get(String endpoint, HashMap<String, Object> params, HashMap<String, Object> options) throws WorkbooksApiException {
 		boolean url_encode = false;
 		if (options == null) {
@@ -1222,7 +1206,7 @@ public class WorkbooksApi {
 	 * 
 	 * As usual, check the API documentation for further information.
 	 */
-	public WorkbooksApiResponse batch(String endpoint, ArrayList objs, HashMap<String, Object> params, String method, HashMap<String, Object> options)
+	public WorkbooksApiResponse batch(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, String method, HashMap<String, Object> options)
 			throws WorkbooksApiException {
 		// this->log('batch() called with params', array(endpoint, objs));
 
@@ -1248,7 +1232,7 @@ public class WorkbooksApi {
 	/**
 	 * Interface as per batch() but if the response is not 'ok' it also logs an error and raises an exception.
 	 */
-	public WorkbooksApiResponse assertBatch(String endpoint, ArrayList objs, HashMap<String, Object> params, String method, HashMap<String, Object> options)
+	public WorkbooksApiResponse assertBatch(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, String method, HashMap<String, Object> options)
 			throws Exception {
 		WorkbooksApiResponse response = this.batch(endpoint, objs, params, method, options);
 		response.assertResponse();
@@ -1271,7 +1255,7 @@ public class WorkbooksApi {
 	 * 
 	 * As usual, check the API documentation for further information.
 	 */
-	public WorkbooksApiResponse create(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options)
+	public WorkbooksApiResponse create(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options)
 			throws WorkbooksApiException {
 		return this.batch(endpoint, objs, params, "CREATE", options);
 	}
@@ -1279,7 +1263,7 @@ public class WorkbooksApi {
 	/**
 	 * Interface as per create() but if the response is not 'ok' it also logs an error and raises an exception.
 	 */
-	public WorkbooksApiResponse assertCreate(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
+	public WorkbooksApiResponse assertCreate(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
 		WorkbooksApiResponse response = this.create(endpoint, objs, params, options);
 		response.assertResponse();
 		return response;
@@ -1301,7 +1285,7 @@ public class WorkbooksApi {
 	 * 
 	 * As usual, check the API documentation for further information.
 	 */
-	public WorkbooksApiResponse update(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options)
+	public WorkbooksApiResponse update(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options)
 			throws WorkbooksApiException {
 		return this.batch(endpoint, objs, params, "UPDATE", options);
 	}
@@ -1309,7 +1293,7 @@ public class WorkbooksApi {
 	/**
 	 * Interface as per update() but if the response is not 'ok' it also logs an error and raises an exception.
 	 */
-	public WorkbooksApiResponse assertUpdate(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
+	public WorkbooksApiResponse assertUpdate(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
 		WorkbooksApiResponse response = this.update(endpoint, objs, params, options);
 		response.assertResponse();
 		return response;
@@ -1331,7 +1315,7 @@ public class WorkbooksApi {
 	 * 
 	 * As usual, check the API documentation for further information.
 	 */
-	public WorkbooksApiResponse delete(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options)
+	public WorkbooksApiResponse delete(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options)
 			throws WorkbooksApiException {
 		return this.batch(endpoint, objs, params, "DELETE", options);
 	}
@@ -1339,7 +1323,7 @@ public class WorkbooksApi {
 	/**
 	 * Interface as per delete() but if the response is not 'ok' it also logs an error and raises an exception.
 	 */
-	public WorkbooksApiResponse assertDelete(String endpoint, ArrayList objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
+	public WorkbooksApiResponse assertDelete(String endpoint, ArrayList<HashMap<String, Object>> objs, HashMap<String, Object> params, HashMap<String, Object> options) throws Exception {
 		WorkbooksApiResponse response = this.delete(endpoint, objs, params, options);
 		response.assertResponse();
 		return response;
@@ -1357,11 +1341,17 @@ public class WorkbooksApi {
 
 		//this.log("populateFilters called with params ", new Object[] {obj_array});
 
-		ArrayList filter_ids = new ArrayList();
+		ArrayList<Object> filter_ids = new ArrayList<Object>();
 		String method_key = "__method";
 		String obj_method = method;
 
 		for (HashMap<String, Object> obj : obj_array) {
+			if (obj.containsKey("method")) {
+				method_key = "method";
+			}
+			if (obj.get(method_key) != null) {
+				obj_method = (String) obj.get(method_key);
+			}
 
 			if (obj_method.toUpperCase().equals("CREATE")) {
 				filter_ids.add("0");
@@ -1508,7 +1498,8 @@ public class WorkbooksApi {
 	 * @param url_encode Boolean Whether to URL encode them, defaults to true 
 	 * @return Array the (encoded) set of objects suitable for passing to Workbooks
 	 */
-	protected ArrayList fullSquare(ArrayList<HashMap<String, Object>> obj_array, boolean url_encode) throws WorkbooksApiException{
+	@SuppressWarnings("unchecked")
+	protected ArrayList<Object> fullSquare(ArrayList<HashMap<String, Object>> obj_array, boolean url_encode) throws WorkbooksApiException{
 //		 this.log("fullSquare() called with params", new Object[] {obj_array});
 
 		// Use TreeSet so that the keys are unique and sorted
@@ -1692,7 +1683,7 @@ public class WorkbooksApi {
 		this.logical_database_id = logical_database_id;
 	}
 
-	public String getDatabase_instance_id() {
+	public String getDatabase_instance_ref() {
 		return DatatypeConverter.printBase64Binary((database_instance_id + "17").getBytes());
 	}
 
@@ -1748,14 +1739,6 @@ public class WorkbooksApi {
 		this.connect_timeout = connect_timeout;
 	}
 
-	public int getRequest_timeout() {
-		return request_timeout;
-	}
-
-	public void setRequest_timeout(int request_timeout) {
-		this.request_timeout = request_timeout;
-	}
-
 	public boolean isVerify_peer() {
 		return verify_peer;
 	}
@@ -1794,5 +1777,11 @@ public class WorkbooksApi {
 
 	public void setJsonPretty(String jsonPretty) {
 		this.jsonPretty = jsonPretty;
+	}
+	public int getApi_version() {
+		return api_version;
+	}
+	public void setApi_version(int api_version) {
+		this.api_version = api_version;
 	}
 }

@@ -1,10 +1,6 @@
 package workbooks_app.client_lib.java;
-import java.io.StringReader;
 import java.util.HashMap;
-
-import javax.json.Json;
 import javax.json.JsonObject;
-import javax.json.JsonReader;
 
 /** 
  *	Login wrapper for Workbooks for API test purposes. This version uses a 'traditional' username and 
@@ -12,7 +8,7 @@ import javax.json.JsonReader;
  *  see TestLoginHelper.java
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: TestUsernamePasswordSessionHelper.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: TestUsernamePasswordSessionHelper.java 22080 2014-05-21 12:53:52Z bviroja $
  */
  
 public class TestUsernamePasswordSessionHelper {
@@ -83,17 +79,7 @@ public class TestUsernamePasswordSessionHelper {
 		
 		return workbooks;
 	}
-	
-	public void testJsonConversion() {
-		String str = "{\"person_name\": \"Beena Viroja\", \"my_queues\": {\"Private::Crm::MarketingCampaignQueue\": 6, \"Private::Accounting::SalesOrderQueue\": 6, \"Private::Crm::PersonLeadPartyQueue\": 7, \"Private::Crm::PersonQueue\": 6, \"Private::Crm::OpportunityQueue\": 6, \"Private::Accounting::CreditNoteQueue\": 6, \"Private::Crm::SalesLeadQueue\": 7, \"Private::Crm::OrganisationQueue\": 6, \"Private::Accounting::InvoiceQueue\": 6, \"Private::Crm::CaseQueue\": 10, \"Private::Accounting::QuotationQueue\": 6, \"Private::Activity::ActivityQueue\": 7, \"Private::Accounting::ContractQueue\": 6, \"Private::Accounting::PurchaseOrderQueue\": 6}, \"timezone\": \"London (GMT+00:00)\", \"logical_database_id\": 13330, \"default_database_id\": 13330, \"user_id\": 29198, \"version\": \"A.40.45 (build 20476)\", \"database_instance_id\": 47119, \"authenticity_token\": \"4b23f905a0f8f9e3217173d96c2dc278f3481ad6\", \"session_id\": \"e836089802e3f2d185d8d73f8fb56332\", \"databases\": [{\"name\": \"Demo\", \"created_at\": \"Wed Feb 05 11:29:51 UTC 2014\", \"id\": 13350}, {\"name\": \"Main\", \"created_at\": \"Tue Feb 04 10:25:56 UTC 2014\", \"id\": 13330}], \"api_version\": 1, \"database_name\": \"Main\", \"login_name\": \"beena@codextechnologies.co.uk\"}";
-		JsonReader jsonReader = Json.createReader(new StringReader(str));
-		JsonObject object = jsonReader.readObject();
-		String pName = object.getString("person_name");
-		JsonObject queueObj =  object.getJsonObject("my_queues");
-		System.out.println("Person name:" + queueObj.getInt("Private::Crm::MarketingCampaignQueue"));
-		jsonReader.close();
-	}
-	
+		
 	public void testExit(WorkbooksApi workbooks, int exitcode) {
 		try {
 			HashMap<String, Object> logout = workbooks.logout();

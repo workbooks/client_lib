@@ -9,7 +9,7 @@ import java.util.HashMap;
  *  an API key.
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: TestLoginHelper.java 21852 2014-05-01 14:56:08Z bviroja $
+ * 	Last commit $Id: TestLoginHelper.java 22080 2014-05-21 12:53:52Z bviroja $
  */
 
 public class TestLoginHelper {
@@ -30,7 +30,6 @@ public class TestLoginHelper {
 		}
 		params.put("application_name", application_name);
 		params.put("user_agent", user_agent);
-		params.put("logger_callback", "logAllToStdout");
 		params.put("verify_peer", verify_peer);
 		if (api_key != null && api_key != "") {
 			params.put("api_key", api_key);
