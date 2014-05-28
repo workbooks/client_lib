@@ -91,29 +91,29 @@ public WorkbooksApi testLogin() {
        * Multiple databases are available, and we must choose one.
        * A good UI might remember the previously-selected database or use $databases to present a list of databases for the user to choose from.
        */
-	String default_database_id = responseObject.getString("default_database_id");
+	    String default_database_id = responseObject.getString("default_database_id");
 /*
        * For this example we simply select the one which was the default when the user last logged in to the Workbooks user interface. This
        * would not be correct for most API clients since the user's choice on any particular session should not necessarily change their choice
        * for all of their API clients.
        */
-	loginParams.put("logical_database_id", default_database_id);
+	    loginParams.put("logical_database_id", default_database_id);
 
-	response = workbooks.login(loginParams);
-	http_status = (Integer)response.get("http_status");
-	if (http_status != WorkbooksApi.HTTP_STATUS_OK) {
-		 workbooks.log("Login has failed", new Object[] {response}, "error", WorkbooksApi.DEFAULT_LOG_LIMIT);
-						System.exit(0);
-	}
-	}
+      response = workbooks.login(loginParams);
+      http_status = (Integer)response.get("http_status");
+      if (http_status != WorkbooksApi.HTTP_STATUS_OK) {
+         workbooks.log("Login has failed", new Object[] {response}, "error", WorkbooksApi.DEFAULT_LOG_LIMIT);
+                System.exit(0);
+      }
+	  }
 	}
 	workbooks.log("Login complete", new Object[] {this.getClass()}, "info", WorkbooksApi.DEFAULT_LOG_LIMIT);
 
 	} catch(Exception e) {
-	workbooks.log("Exception: ", new Object[] {e}, "error", WorkbooksApi.DEFAULT_LOG_LIMIT);
+	  workbooks.log("Exception: ", new Object[] {e}, "error", WorkbooksApi.DEFAULT_LOG_LIMIT);
 	}
 	return workbooks;
-	}
+}
 
 </code></pre>
 
@@ -145,7 +145,7 @@ Example:
 		    "updated_by_user[person_name]"};
   HashMap<String, Object>   filter_limit_select = new HashMap<String, Object> ();
 
-	filter_limit_select.put("_start", "0");// Starting from the 'zeroth' record
+  filter_limit_select.put("_start", "0");// Starting from the 'zeroth' record
 	filter_limit_select.put("_limit", "100");//   fetch up to 100 records
 	filter_limit_select.put("_sort", "id");// Sort by 'id'
 	filter_limit_select.put("_dir", "ASC");//   in ascending order
@@ -154,10 +154,10 @@ Example:
   filter_limit_select.put("_fc[]", "Berkshire");//   'Berkshire'
   filter_limit_select.put("_select_columns[]", columns);  // An array, of columns to select
 
-	WorkbooksApiResponse response = workbooks.assertGet("crm/organisations", filter_limit_select, null);
+  WorkbooksApiResponse response = workbooks.assertGet("crm/organisations", filter_limit_select, null);
 OR
   WorkbooksApiResponse response = workbooks.get("crm/organisations", filter_limit_select, null);
-	JsonArray allData = response.getData();
+  JsonArray allData = response.getData();
 </code></pre>
 
 ### assertCreate(), create()
@@ -166,18 +166,17 @@ _Create one or more objects_
 
 Example, creating a single organisation:
 <pre><code>
- 	ArrayList<HashMap<String, Object>> singleOrganisation = new ArrayList<HashMap<String, Object>>();
+  ArrayList<HashMap<String, Object>> singleOrganisation = new ArrayList<HashMap<String, Object>>();
+  HashMap<String, Object> org1 = new HashMap<String, Object>();
+  ArrayList<HashMap<String, Object>> objectIdLockVersion = null;
 
-	HashMap<String, Object> org1 = new HashMap<String, Object>();
-	ArrayList<HashMap<String, Object>> objectIdLockVersion = null;
-
-	org1.put("name", "Birkbeck Burgers");
-	org1.put("industry", "Food");
-	org1.put("main_location[country]", "United Kingdom");
-	org1.put("main_location[county_province_state]", "Oxfordshire");
-	org1.put("main_location[town]", "Oxford");
-	singleOrganisation.add(org1);
-	WorkbooksApiResponse response = workbooks.assertCreate("crm/organisations", singleOrganisation, null, null);
+  org1.put("name", "Birkbeck Burgers");
+  org1.put("industry", "Food");
+  org1.put("main_location[country]", "United Kingdom");
+  org1.put("main_location[county_province_state]", "Oxfordshire");
+  org1.put("main_location[town]", "Oxford");
+  singleOrganisation.add(org1);
+  WorkbooksApiResponse response = workbooks.assertCreate("crm/organisations", singleOrganisation, null, null);
 OR
   WorkbooksApiResponse response = workbooks.create("crm/organisations", singleOrganisation, null, null);
 </code></pre>
@@ -279,33 +278,33 @@ Example:
   HashMap<String, Object> deleteAction =  new HashMap<String, Object> ();
   HashMap<String, Object> deleteAnotherAction =  new HashMap<String, Object> ();
   ArrayList<HashMap<String, Object>> batchActions = new ArrayList<HashMap<String, Object>>();
-	createAction.put("method"														, "CREATE");
-	createAction.put("name"                                 , "Abercrombie Pies");
-	createAction.put("industry"                             , "Food");
-	createAction.put("main_location[country]"               , "United Kingdom");
-	createAction.put("main_location[county_province_state]" , "Berkshire");
-	createAction.put("main_location[town]"                  , "Beading");
+  createAction.put("method"														, "CREATE");
+  createAction.put("name"                                 , "Abercrombie Pies");
+  createAction.put("industry"                             , "Food");
+  createAction.put("main_location[country]"               , "United Kingdom");
+  createAction.put("main_location[county_province_state]" , "Berkshire");
+  createAction.put("main_location[town]"                  , "Beading");
 
-	updateAction.put("method", "UPDATE");
-	updateAction.put("id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
-	updateAction.put("lock_version", ((HashMap)objectIdLockVersion.get(0)).get("lock_version"));
-	updateAction.put("name", "Lights \'R Us");
-	updateAction.put("main_location[postcode]", null);
+  updateAction.put("method", "UPDATE");
+  updateAction.put("id", ((HashMap)objectIdLockVersion.get(0)).get("id"));
+  updateAction.put("lock_version", ((HashMap)objectIdLockVersion.get(0)).get("lock_version"));
+  updateAction.put("name", "Lights \'R Us");
+  updateAction.put("main_location[postcode]", null);
 
-	deleteAction.put("method", "DELETE");
-	deleteAction.put("id", ((HashMap)objectIdLockVersion.get(1)).get("id"));
-	deleteAction.put("lock_version", ((HashMap)objectIdLockVersion.get(1)).get("lock_version"));
+  deleteAction.put("method", "DELETE");
+  deleteAction.put("id", ((HashMap)objectIdLockVersion.get(1)).get("id"));
+  deleteAction.put("lock_version", ((HashMap)objectIdLockVersion.get(1)).get("lock_version"));
 
-	deleteAnotherAction.put("id", ((HashMap)objectIdLockVersion.get(2)).get("id"));
-	deleteAnotherAction.put("lock_version", ((HashMap)objectIdLockVersion.get(2)).get("lock_version"));
-	deleteAnotherAction.put("method", "DELETE");
+  deleteAnotherAction.put("id", ((HashMap)objectIdLockVersion.get(2)).get("id"));
+  deleteAnotherAction.put("lock_version", ((HashMap)objectIdLockVersion.get(2)).get("lock_version"));
+  deleteAnotherAction.put("method", "DELETE");
 
-	batchActions.add(createAction);
-	batchActions.add(updateAction);
-	batchActions.add(deleteAction);
-	batchActions.add(deleteAnotherAction);
+  batchActions.add(createAction);
+  batchActions.add(updateAction);
+  batchActions.add(deleteAction);
+  batchActions.add(deleteAnotherAction);
 
-	WorkbooksApiResponse responseBatch = workbooks.assertBatch("crm/organisations", batchActions , null, null, null);
+  WorkbooksApiResponse responseBatch = workbooks.assertBatch("crm/organisations", batchActions , null, null, null);
 OR
   WorkbooksApiResponse responseBatch = workbooks.batch("crm/organisations", batchActions , null, null, null);
 </code></pre>
