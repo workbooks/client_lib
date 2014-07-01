@@ -86,7 +86,7 @@ Example:
   workbooks.log('Fetched objects', response.data)
 </code></pre>
 
-### assertCreate(), create()
+### assert_create(), create()
 
 _Create one or more objects_
 
@@ -137,7 +137,7 @@ Or create several:
   object_id_lock_versions = response.id_versions
 </code></pre>
 
-### assertUpdate(), update()
+### assert_update(), update()
 
 _Update one or more objects_
 
@@ -163,7 +163,7 @@ Example:
   object_id_lock_versions = response.id_versions
 </code></pre>
 
-### assertDelete(), delete()
+### assert_delete(), delete()
 
 _Delete one or more objects_
 
@@ -175,7 +175,7 @@ Example:
   response = workbooks.assert_delete('automation/api_data', response['data'])
 </code></pre>
 
-### assertBatch(), batch()
+### assert_batch(), batch()
 
 _Create, update, and delete several objects together_
 
