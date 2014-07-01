@@ -37,7 +37,7 @@ import javax.xml.bind.DatatypeConverter;
 /** A Java wrapper for the Workbooks API 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: WorkbooksApi.java 22139 2014-05-28 21:29:09Z jkay $
+ * 	Last commit $Id: WorkbooksApi.java 22483 2014-06-27 22:26:37Z jkay $
  *
  *
  *  Significant methods in the class Workbooks:
@@ -1001,10 +1001,10 @@ public class WorkbooksApi {
   				}
   			});
   		}
-  		((HttpsURLConnection)connection).setInstanceFollowRedirects(false);
+  		((HttpsURLConnection)connection).setInstanceFollowRedirects(true);
   		((HttpsURLConnection)connection).setRequestMethod(method.toUpperCase());
 		} else {
-			((HttpURLConnection)connection).setInstanceFollowRedirects(false);
+			((HttpURLConnection)connection).setInstanceFollowRedirects(true);
 			((HttpURLConnection)connection).setRequestMethod(method.toUpperCase());			
 		}
 		connection.setDoOutput(true);

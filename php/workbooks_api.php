@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 22139 2014-05-28 21:29:09Z jkay $
+ *   Last commit $Id: workbooks_api.php 22485 2014-06-30 09:25:31Z jkay $
  *
  *       The MIT License
  *
@@ -882,7 +882,7 @@ class WorkbooksApi
    * A successful logout will return a 'success' value of true
   **/
   public function logout() {
-    $sr = self::makeRequest('logout', 'POST', array());
+    $sr = self::makeRequest('logout', 'POST', array(), array(), array('follow_redirects' => false));
     
     $this->setLoginState(false); // force a login regardless of the server-side state
     $this->setAuthenticityToken(NULL);
@@ -1193,7 +1193,9 @@ class WorkbooksApi
    * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
    * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
    * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
-   * @param Array $options Optional options, currently only 'content_type' is supported which defaults to 'application/x-www-form-urlencoded'
+   * @param Array $options Optional options,:
+   *    * 'content_type' which defaults to 'application/x-www-form-urlencoded'
+   *    * 'follow_redirects' which defaults to true
    * @return Array (Integer the http status, String the response text)
    * @throws WorkbooksApiException
   **/
@@ -1201,6 +1203,7 @@ class WorkbooksApi
     
     // $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
     $content_type=(isset($options['content_type']) ? $options['content_type'] : WorkbooksApi::FORM_URL_ENCODED);
+    $follow_redirects=(isset($options['follow_redirects']) ? $options['follow_redirects'] : true);
 
     $start_time = microtime(true);
     $url_params = array(
@@ -1300,7 +1303,7 @@ class WorkbooksApi
       CURLOPT_POSTFIELDS     => $post_fields,
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_HEADER         => true,
-      CURLOPT_FOLLOWLOCATION => false,
+      CURLOPT_FOLLOWLOCATION => $follow_redirects,
       CURLOPT_POST           => true,
     ));
 

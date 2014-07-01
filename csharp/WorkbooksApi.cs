@@ -666,6 +666,7 @@ namespace WorkbooksApiApplication
       }
       // ************** END of content type is multipart/form-data ********************
       try {
+        ((HttpWebRequest)request).AllowAutoRedirect=true;
         // Get the response.
         response = request.GetResponse ();
         status = (int)((HttpWebResponse)response).StatusCode;
