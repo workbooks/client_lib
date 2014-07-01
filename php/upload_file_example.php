@@ -3,7 +3,7 @@
 /**
 * A demonstration of using the Workbooks API via a thin PHP wrapper to upload and download files
 *
-* Last commit $Id: upload_file_example.php 18721 2013-04-19 21:41:28Z jkay $
+* Last commit $Id: upload_file_example.php 22499 2014-07-01 10:49:53Z jkay $
 *
 * The MIT License
 *
@@ -173,7 +173,7 @@ for ($i = 0; $i < count($files); $i++) {
       $data_len == $f['file_size']
   ) { // Everything OK; download the data, compare with the originally-uploaded data
 
-    $data = $workbooks->get("upload_files/{$f['id']}/download", array(), FALSE);
+    $data = $workbooks->get("upload_files/{$f['id']}/download", array(), array('decode_json' => false));
 
     if (strlen($data) != $data_len) {
       $workbooks->log('File download failed: bad data length', array(strlen($data), $data_len, $f), 'error');
@@ -222,7 +222,7 @@ $update = array(
     ),
   ),
 );
-$response = $workbooks->assertUpdate('upload_files', $update);
+$response = $workbooks->assertUpdate('upload_files', $update, array(), array('content_type' => 'multipart/form-data'));
 unlink($file['tmp_name']);
 
 /*
