@@ -31,6 +31,7 @@ namespace EmailExampleApplication
 
     /// <summary>
     /// Choose a template and a Case then use it to Send an email about the Case.
+    /// You can pass additional placeholders as JSON; these are merged into the template.
     /// </summary>
     public static void sendTemplatedEmail() {
 
@@ -44,6 +45,7 @@ namespace EmailExampleApplication
       templatedEmail.Add("to_addresses", "to.address1@workbooks.com, to.address2@workbooks.com");
       templatedEmail.Add("cc_addresses", "cc.address1@workbooks.com, cc.address2@workbooks.com");
       templatedEmail.Add("bcc_addresses", "bcc.address@workbooks.com");
+      templatedEmail.Add("render_with_placeholders", "{\"today_date\":\"10 Jun 2014\",\"contract_value\":\"&pound;420.42\",\"credits_used\":\"42\"}");
       templatedEmail.Add("status", "SEND");
 
       templatedEmailList.Add(templatedEmail);

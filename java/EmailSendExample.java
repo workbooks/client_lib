@@ -11,7 +11,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *  created in a raw form ("rfc822").
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: EmailSendExample.java 22080 2014-05-21 12:53:52Z bviroja $
+ * 	Last commit $Id: EmailSendExample.java 22442 2014-06-25 08:40:07Z jkay $
  */
 public class EmailSendExample {
 
@@ -35,6 +35,7 @@ public class EmailSendExample {
 	
 	/*
 	 * Choose a template and a Case then use it to Send an email about the Case.
+	 * You can pass additional placeholders as JSON; these are merged into the template.
 	 */
 
 	public static void sendTemplatedEmail() {
@@ -51,6 +52,7 @@ public class EmailSendExample {
 		 templatedEmail.put("to_addresses", "beena@codextechnologies.co.uk");
 		 templatedEmail.put("cc_addresses", "cc.address1@workbooks.com, cc.address2@workbooks.com");
 		 templatedEmail.put("bcc_addresses", "bv@workbooks.com");
+		 templatedEmail.put("render_with_placeholders", "{\"today_date\":\"10 Jun 2014\",\"contract_value\":\"&pound;420.42\",\"credits_used\":\"42\"}");
 		 templatedEmail.put("status", "SEND");
 		
 		 templatedEmailList.add(templatedEmail);

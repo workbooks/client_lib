@@ -5,7 +5,7 @@
  *   Emails can be based on templates (with substitution of values from records) or
  *   created in a raw form ("rfc822").
  *
- *   Last commit $Id: email_send_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: email_send_example.php 22442 2014-06-25 08:40:07Z jkay $
  *
  *       The MIT License
  *
@@ -35,8 +35,11 @@ require_once 'workbooks_api.php';
 /* If not running under the Workbooks Process Engine create a session */
 require 'test_login_helper.php';
 
+date_default_timezone_set('UTC');
+
 /*
  * Choose a template and a Case then use it to Send an email about the Case.
+ * You can pass additional placeholders as JSON; these are merged into the template.
  */
 $send_templated_email = array(
   'render_with_template_name' => 'Autotest Template',
@@ -46,9 +49,17 @@ $send_templated_email = array(
   'to_addresses' => 'to.address1@workbooks.com, to.address2@workbooks.com',
   'cc_addresses' => 'cc.address1@workbooks.com, cc.address2@workbooks.com',
   'bcc_addresses' => 'bcc.address@workbooks.com',
+  'render_with_placeholders' => json_encode(
+    array(
+      'today_date' => date('d M Y'),
+      'contract_value' => '&pound;420.42',
+      'credits_used' => 42,
+    )
+  ),
   'status' => 'SEND',
 );
-$workbooks->assertCreate('email/emails', $send_templated_email);
+$create_response = $workbooks->create('email/emails', $send_templated_email);
+$workbooks->log('Sent email', $create_response);
 
 /*
  * Alternatively, choose a template and a Case then use it to create a Draft email about the Case.
@@ -65,6 +76,7 @@ $create_templated_email = array(
 );
 $create_email_response = $workbooks->assertCreate('email/emails', $create_templated_email);
 $email_id_lock_versions = $workbooks->idVersions($create_email_response);
+$workbooks->log('Created draft email', $create_email_response);
 
 /*
  * Now change the status to send it
