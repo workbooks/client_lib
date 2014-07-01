@@ -1,24 +1,14 @@
 # Ruby language binding for the Workbooks API
 
-See the other ruby code here in github for simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.rb` file contain additional information to that here.
+See the ruby code here in github for simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.rb` file contain additional information to that here.
 
 ## Usage
 
-External scripts can authenticate using an API Key or a username and password. In the examples here authentication is done in `test_login_helper.rb`.
-
-## External Script Usage
-
-There are several ways for external scripts to authenticate with Workbooks. Most API scripts should use API Keys to authenticate with Workbooks: Workbooks users can create API Keys in the Workbooks Desktop. Using API Keys there is no need to explicitly call `login()` or `logout()`.
-
-### Using API Keys without a Session
-
-Simply invoke `new()` and pass an API Key to create a Workbooks API object and then you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions. Using session-based authentication (as described below) is more efficient if you are going to issue multiple API calls.
+External scripts can authenticate using an API Key or a username and password. In the examples included here authentication is done in `test_login_helper.rb` using an API Key: just pass the `:api_key` parameter when you create a new `WorkbooksApi` object.
 
 ### Using login() and logout()
 
-An alternative is to establish a session with the Workbooks service: pass an API Key or a username and password to the `login()` call and your script receives back a Session ID in a cookie. Sessions can be reconnected using an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `getSessionId()` to retain a session ID for future use.
-
-Once you have a new `WorkbooksAPI` object you will typically `login()` to create a new session, although you might use `session_id` to re-connect to an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to use `session_id` to retain a session ID for future use.
+An alternative is to use a username and password to establish a session with the Workbooks service: pass them to the `login()` call. Sessions can be reconnected using an existing session whose ID you have retained. When you are finished, it is polite to `logout()` or you may want to retain a session ID for future use.
 
 Having obtained a session you can use any of the following methods: `get()`, `create()`, `update()`, `delete()`, `batch()`, or the assert versions.
 
@@ -40,7 +30,7 @@ Example:
    )
 </code></pre>
 
-If you omit the api_key above you will instead need to use `login()` to establish a session and receive a cookie.
+If you omit the api_key above you will instead need to use `login()` to establish a session.
 
 ### login()
 
