@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API to fetch a PDF document via a thin PHP wrapper.
  *
- *   Last commit $Id: pdf_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: pdf_example.php 22491 2014-06-30 12:29:15Z jkay $
  *
  *       The MIT License
  *
@@ -64,7 +64,7 @@ $order_id = $response['data'][0]['id'];
 
 /* Now generate the PDF */
 $url = "accounting/sales_orders/{$order_id}.pdf?template={$pdf_template_id}";
-$pdf = $workbooks->get($url, array(), FALSE);
+$pdf = $workbooks->get($url, array(), array('decode_json' => false));
 // Ensure the response looks like a PDF
 if (!preg_match('/^\%PDF\-1\.4\s/', $pdf)) {
   $workbooks->log('ERROR: Unexpected response: is it a PDF?', $pdf, 'error');
