@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to search for records using
  *   their most significant fields via a thin PHP wrapper
  *
- *   Last commit $Id: search_example.php 19136 2013-06-13 13:52:23Z swhitehouse $
+ *   Last commit $Id: search_example.php 22441 2014-06-25 08:26:14Z jkay $
  *
  *       The MIT License
  *
@@ -52,7 +52,7 @@ $response = $workbooks->assertGet('searchables.api',
 $workbooks->log('Fetched objects', $response['data']);
 if ( $response['total'] <= 0 ||  $response['total'] >= 100 ) {
   $workbooks->log('Received an unexpected number of rows - expected between 1 and 100 and got ', array ($response['total']));
-  exit(1);
+  testExit($workbooks, $exit_error);
 }
 
 /*
@@ -70,7 +70,7 @@ $response = $workbooks->assertGet('searchables.api',
 $workbooks->log('Fetched objects', $response['data']);
 if ( $response['total'] <= 0 ||  $response['total'] >= 100 ) {
   $workbooks->log('Received an unexpected number of rows - expected between 1 and 100 and got ', array ($response['total']));
-  exit(1);
+  testExit($workbooks, $exit_error);
 }
 
 /*
@@ -87,7 +87,7 @@ $response = $workbooks->assertGet('searchables.api',
 $workbooks->log('Fetched objects', $response['data']);
 if ($response['total'] != 100 ) {
   $workbooks->log('Received an unexpected number of rows - expected 100 and got', $response['total']);
-  exit(1);
+  testExit($workbooks, $exit_error);
 }
 
 testExit($workbooks);
