@@ -1,7 +1,7 @@
 #
 #  A Ruby wrapper for the Workbooks API documented at http://www.workbooks.com/api
 #
-#  Last commit $Id: workbooks_api.rb 22501 2014-07-01 12:17:25Z jkay $
+#  Last commit $Id: workbooks_api.rb 22510 2014-07-02 09:02:59Z jkay $
 #  License: www.workbooks.com/mit_license
 #
 #  Significant methods in the class Workbooks:
@@ -28,8 +28,8 @@ require 'json'
 
 # WorkbooksApi raises WorkbooksApiExceptions.
 class WorkbooksApiException < StandardError
-  attr :workbooks_api
-  attr :last_response
+  attr_accessor :workbooks_api
+  attr_accessor :last_response
   
   def initialize(workbooks_api=nil, last_response=nil)
     @workbooks_api = workbooks_api
@@ -43,7 +43,7 @@ end
 
 # The API returns WorkbooksApiResponse objects. These behave a bit like hashes.
 class WorkbooksApiResponse
-  attr :response
+  attr_accessor :response
   
   def initialize(response)
     @response = response
@@ -133,11 +133,11 @@ class WorkbooksApi
   attr_reader :service
   attr_reader :last_request_duration
   attr_reader :user_queues # when logged in contains an array of user queues
-  attr :http
-  attr :cookies
-  attr :logger
-  attr :max_log_size
-  attr :http_debug_output
+  attr_accessor :http
+  attr_accessor :cookies
+  attr_accessor :logger
+  attr_accessor :max_log_size
+  attr_accessor :http_debug_output
 
   # The content_type governs the encoding used for data transfer to the Service. Two forms are
   # supported in this binding; use FORM_DATA for file uploads.
