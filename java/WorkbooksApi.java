@@ -37,7 +37,7 @@ import javax.xml.bind.DatatypeConverter;
 /** A Java wrapper for the Workbooks API 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: WorkbooksApi.java 22483 2014-06-27 22:26:37Z jkay $
+ * 	Last commit $Id: WorkbooksApi.java 26106 2015-05-27 09:37:57Z bviroja $
  *
  *
  *  Significant methods in the class Workbooks:
@@ -282,9 +282,10 @@ public class WorkbooksApi {
 	protected long last_request_duration = 0;
 	protected String user_queues = null; // when logged in contains an array of user queues
 	protected String jsonPretty = "pretty"; // have json print pretty
+	protected JsonObject login_response = null;
 	
 	
-	final String CHARSET = "UTF-8";
+	public static final String CHARSET = "UTF-8";
 
 	// Exit codes which mean something to the Workbooks Process Engine.
   public static final int EXIT_OK = 0;
@@ -531,7 +532,7 @@ public class WorkbooksApi {
 		params.put("_application_name", this.getApplication_name());
 		params.put("json", this.getJsonPretty());
 		params.put("_strict_attribute_checking", Boolean.toString(true));
-		params.put("api_version", this.getApi_version());
+		params.put("api_version", Integer.toString(this.getApi_version()));
 		
 		HashMap<String, Object> serviceResponse = makeRequest("login.api", "POST", params, null, null);
 		int http_status = 0;
@@ -552,6 +553,7 @@ public class WorkbooksApi {
 				this.setUser_queues(responseObject.getJsonObject("my_queues").toString());
 				this.setAuthenticity_token(responseObject.getString("authenticity_token"));
 				this.setDatabase_instance_id(Integer.toString(responseObject.getInt("database_instance_id")));
+				this.setLogin_response(responseObject);
 			}
 		}
 		retval = new HashMap<String, Object>();
@@ -628,11 +630,9 @@ public class WorkbooksApi {
 		try {
 			for (Object pair : data.keySet()) {
 				queryString.append(URLEncoder.encode(pair.toString(), CHARSET) + "=");
-				if (data.get(pair) == null) {
-					queryString.append("null&");
-				} else {
-					queryString.append(URLEncoder.encode((String) data.get(pair), CHARSET) + "&");
-				}
+				if (data.get(pair) != null) {
+				 	queryString.append(URLEncoder.encode((String) data.get(pair), CHARSET) + "&");
+ 				}
 			}
 
 			if (queryString.length() > 0) {
@@ -979,7 +979,7 @@ public class WorkbooksApi {
 	 * @return - HttpsURLConnection - the connection to the url provided with the request paramters set
 	 * @throws IOException
 	 */
-	private URLConnection createHttpConnectionObject(String url, String method, String post_fields, String content_type) throws IOException {
+	public URLConnection createHttpConnectionObject(String url, String method, String post_fields, String content_type) throws IOException {
 
 		String cookie = this.getSessionCookie();
 	//	HttpURLConnection connection = null;
@@ -1126,13 +1126,13 @@ public class WorkbooksApi {
  **/
 	@SuppressWarnings("unchecked")
 	public WorkbooksApiResponse get(String endpoint, HashMap<String, Object> params, HashMap<String, Object> options) throws WorkbooksApiException {
-		boolean url_encode = false;
+		boolean url_encode = true;
 		if (options == null) {
 			options = new HashMap<String, Object>();
 			options.put("decode_json", true);
 		}
 		if (options != null && options.containsKey("content_type")) {
-			options.put("content_type", WorkbooksApi.FORM_URL_ENCODED);
+			url_encode = (options.get("content_type").toString().equalsIgnoreCase(FORM_URL_ENCODED));
 		} else {
 			url_encode = true;
 		}
@@ -1154,17 +1154,42 @@ public class WorkbooksApi {
 						} catch (ClassCastException ce) {
 							String[][] fil = (String[][]) entry.getValue();
 						}
-						String[][] filter_params = (String[][]) entry.getValue();
-						for (String[] filter : filter_params) {
-							array_params.add("_ff[]=" + filter[0]);
-							array_params.add("_ft[]=" + filter[1]);
-							array_params.add("_fc[]=" + filter[2]);
-						}
+						try {
+  						String[][] filter_params = (String[][]) entry.getValue();
+  						System.out.println("The filter_oarams" + filter_params);
+  						for (String[] filter : filter_params) {
+  							array_params.add("_ff[]=" + (url_encode ? URLEncoder.encode(filter[0], CHARSET) :filter[0]));
+  							array_params.add("_ft[]=" + (url_encode ? URLEncoder.encode(filter[1], CHARSET) :filter[1]));
+  							array_params.add("_fc[]=" + (url_encode ? URLEncoder.encode(filter[2], CHARSET) :filter[2]));
+  						}
+    				} catch (UnsupportedEncodingException ee) {
+								HashMap<String, Object> exceptionObj = new HashMap<String, Object>();
+								HashMap<String, Object> errorObj = new HashMap<String, Object>();
+								errorObj.put("message", "Error while encoding the string values: " + ee.getMessage());
+								errorObj.put("type", "UnsupportedEncodingException");
+  
+								exceptionObj.put("workbooks_api", this);
+								exceptionObj.put("error", errorObj);
+								WorkbooksApiException e = new WorkbooksApiException(exceptionObj);
+								throw e;
+							}
 					} else {
-						String[] paramValues = (String[]) entry.getValue();
-						for (String string : paramValues) {
-							array_params.add(key + "=" + string);
-						}
+						try {
+  						String[] paramValues = (String[]) entry.getValue();
+  						for (String string : paramValues) {
+  								array_params.add(key + "=" + (url_encode ? URLEncoder.encode(string, CHARSET) : string));
+  						}
+  					} catch (UnsupportedEncodingException ee) {
+								HashMap<String, Object> exceptionObj = new HashMap<String, Object>();
+								HashMap<String, Object> errorObj = new HashMap<String, Object>();
+								errorObj.put("message", "Error while encoding the string values: " + ee.getMessage());
+								errorObj.put("type", "UnsupportedEncodingException");
+  
+								exceptionObj.put("workbooks_api", this);
+								exceptionObj.put("error", errorObj);
+								WorkbooksApiException e = new WorkbooksApiException(exceptionObj);
+								throw e;
+							}
 					}
 					// Remove the key from the map
 					iterator.remove();
@@ -1606,7 +1631,7 @@ public class WorkbooksApi {
 	/**
 	 * Ensure we are logged in; if not then reconnect to the service if possible.
 	 */
-	protected void ensureLogin() throws WorkbooksApiException {
+	public void ensureLogin() throws WorkbooksApiException {
 
 		if (!this.isLogin_state() && this.getUsername() != null && this.getSession_id() != null && this.getLogical_database_id() != null) {
 
@@ -1621,7 +1646,7 @@ public class WorkbooksApi {
 				int http_status = (Integer) login_response.get("http_status");
 				if (http_status != WorkbooksApi.HTTP_STATUS_OK) {
 					this.log("Workbooks connection unsuccessful", new Object[] {login_response.get("failure_message")}, "error", DEFAULT_LOG_LIMIT);
-					System.exit(EXIT_DISABLE); // disable the script and issue notification if the Action is scheduled
+					System.exit(EXIT_RETRY); // retry later if the Action is scheduled
 				}
 			} catch (Exception e) {
 				// Handle timeouts differently with a retry.
@@ -1631,7 +1656,7 @@ public class WorkbooksApi {
 					System.exit(EXIT_RETRY); // retry later if the Action is scheduled
 				}
 				this.log("Workbooks connection unsuccessful", new Object[] {e.getMessage()}, "error", DEFAULT_LOG_LIMIT);
-				System.exit(EXIT_DISABLE); // disable the script and issue notification if the Action is scheduled
+				System.exit(EXIT_RETRY); // retry later if the Action is scheduled
 			}
 		}
 
@@ -1683,8 +1708,11 @@ public class WorkbooksApi {
 		this.logical_database_id = logical_database_id;
 	}
 
-	public String getDatabase_instance_ref() {
-		return DatatypeConverter.printBase64Binary((database_instance_id + "17").getBytes());
+	public String getDatabase_instance_ref() throws WorkbooksApiException {
+	  this.ensureLogin();
+		int data_ref = Integer.parseInt(database_instance_id) + 17;
+	  StringBuilder inst_ref = new StringBuilder(DatatypeConverter.printBase64Binary(Integer.toString(data_ref).getBytes()));
+		return inst_ref.reverse().toString();
 	}
 
 	public void setDatabase_instance_id(String database_instance_id) {
@@ -1705,6 +1733,14 @@ public class WorkbooksApi {
 
 	public void setLogin_state(boolean login_state) {
 		this.login_state = login_state;
+	}
+
+	public JsonObject getLogin_response() {
+		return login_response;
+	}
+	
+	public void setLogin_response(JsonObject login_response) {
+		this.login_response = login_response;
 	}
 
 	public boolean isAuto_logout() {
@@ -1763,7 +1799,8 @@ public class WorkbooksApi {
 		this.last_request_duration = last_request_duration;
 	}
 
-	public String getUser_queues() {
+	public String getUser_queues() throws WorkbooksApiException {
+	  this.ensureLogin();
 		return user_queues;
 	}
 
