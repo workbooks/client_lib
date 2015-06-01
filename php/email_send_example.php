@@ -5,7 +5,7 @@
  *   Emails can be based on templates (with substitution of values from records) or
  *   created in a raw form ("rfc822").
  *
- *   Last commit $Id: email_send_example.php 22442 2014-06-25 08:40:07Z jkay $
+ *   Last commit $Id: email_send_example.php 22493 2014-06-30 13:24:12Z jkay $
  *
  *       The MIT License
  *

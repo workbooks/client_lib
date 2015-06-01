@@ -261,6 +261,18 @@ Example:
     // or: $response = $workbooks->batch('crm/organisations', $batch_organisations);
 </code></pre>
 
+### asyncResponse()
+
+_Run multiple API requests concurrently_
+
+Several requests can be issued concurrently. Pass the `async` option, set to true, to any of `get()`, `create()`, `update()`, or
+`delete()`. Rather than the response being returned the caller receives a data structure which can be passed to `asyncResponse()`
+or `assertAsyncResponse()` to retrieve the response at a later time. By issuing multiple requests before calling a method to retrieve
+the response those requests are permitted to run concurrently. An optional parameter, again called `async`, can be passed to 
+`asyncResponse()` or `assertAsyncResponse()` to prevent them blocking while waiting for a response. 
+
+An example is provided in `parallel_example.php`.
+
 ### idVersion()
 
 _Extract ID and LockVersion from response_

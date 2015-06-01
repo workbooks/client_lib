@@ -3,29 +3,8 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 22485 2014-06-30 09:25:31Z jkay $
- *
- *       The MIT License
- *
- *       Copyright (c) 2008-2013, Workbooks Online Limited.
- *       
- *       Permission is hereby granted, free of charge, to any person obtaining a copy
- *       of this software and associated documentation files (the "Software"), to deal
- *       in the Software without restriction, including without limitation the rights
- *       to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- *       copies of the Software, and to permit persons to whom the Software is
- *       furnished to do so, subject to the following conditions:
- *       
- *       The above copyright notice and this permission notice shall be included in
- *       all copies or substantial portions of the Software.
- *       
- *       THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- *       IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- *       FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- *       AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- *       LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- *       OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- *       THE SOFTWARE.
+ *   Last commit $Id: workbooks_api.php 25915 2015-05-08 14:52:01Z jkay $
+ *   License: www.workbooks.com/mit_license
  *
  *
  *   Significant methods in the class Workbooks:
@@ -37,6 +16,7 @@
  *     update                    - update objects
  *     delete                    - delete objects
  *     batch                     - create, update, and delete objects together
+ *     response                  - gather response from an asynchonous request 
  *     getSessionId/setSessionId - use these to connect to an existing session
  *     condensedStatus           - use this to quickly check the response
  *
@@ -91,6 +71,7 @@ class WorkbooksApi
   /**
    * Instance variables
   **/
+  protected $curl_multi_handle = NULL;
   protected $curl_handle = NULL;
   protected $curl_options = NULL;
   protected $logger_callback = NULL;
@@ -113,7 +94,10 @@ class WorkbooksApi
   protected $service = 'https://secure.workbooks.com';
   protected $last_request_duration = NULL;
   protected $user_queues = NULL;     // when logged in contains an array of user queues
-
+  protected $login_response = NULL;
+  protected $async_running = array();// In-flight async requests
+  protected $async_queue = array();  // Async requests not sent yet (concurrency limit exceeded)
+  
   /**
    * Those HTTP status codes of particular significance to the API.
   **/
@@ -138,6 +122,7 @@ class WorkbooksApi
   **/
   const HARD_LOG_LIMIT = 1048576;
   
+  const PARALLEL_CONCURRENCY_LIMIT = 5;
   
   /**
    * Initialise the Workbooks API
@@ -231,6 +216,10 @@ class WorkbooksApi
       CURLOPT_TIMEOUT        => $this->getRequestTimeout(),
       CURLOPT_SSL_VERIFYHOST => $this->getVerifyPeer(),
       CURLOPT_SSL_VERIFYPEER => $this->getVerifyPeer(),
+      CURLOPT_RETURNTRANSFER => true,
+      CURLOPT_HEADER         => true,
+      CURLOPT_POST           => true,
+    //CURLOPT_VERBOSE        => true, // Very noisy, logs to stderr
     );
     
     // $this->log('new() returns', $this);
@@ -238,24 +227,36 @@ class WorkbooksApi
   }
   
   /**
-   * Shutdown the Workbooks API. Logout will happen automatically when this goes out of scope 
-   * unless you call setAutoLogout to change its behaviour.
+   * Get (and create if required) the Curl Multi handle.
+   *
+   * @return Resource $curl_multi_handle a Curl Multi handle as might be returned by curl_multi_init()
   **/
-  public function __destruct() {
-    if (isset($this->curl_handle)){
-      if ($this->getLoginState() && $this->getAutoLogout()) {
-        $this->logout();
+  private function getCurlMultiHandle() {
+    if (!isset($this->curl_multi_handle)) {
+      $this->curl_multi_handle = curl_multi_init();
+      if (function_exists('curl_multi_setopt')) { // More efficient if this is available; not an error if not.
+        curl_multi_setopt($this->curl_multi_handle, CURLMOPT_PIPELINING, true);
       }
-      $this->destroyCurlHandle();
     }
+    return $this->curl_multi_handle;
   }
 
+  /**
+   * Clear down the Curl Multi handle, destroying it.
+  **/
+  private function destroyCurlMultiHandle() {
+    if (isset($this->curl_multi_handle)) {
+      curl_multi_close($this->curl_multi_handle);
+      unset($this->curl_multi_handle);
+    }
+  }
+  
   /**
    * Set the Curl handle.
    *
    * @param Resource $curl_handle a Curl handle as might be returned by curl_init()
   **/
-  public function setCurlHandle($curl_handle) {
+  private function setCurlHandle($curl_handle) {
     $this->curl_handle = $curl_handle;
     return $this;
   }
@@ -265,14 +266,14 @@ class WorkbooksApi
    *
    * @return Resource $curl_handle a Curl handle as might be returned by curl_init()
   **/
-  public function getCurlHandle() {
+  private function getCurlHandle() {
     return $this->curl_handle;
   }
   
   /**
    * Clear down the Curl handle, destroying it.
   **/
-  public function destroyCurlHandle() {
+  private function destroyCurlHandle() {
     if (isset($this->curl_handle)) {
       curl_close($this->curl_handle);
       unset($this->curl_handle);
@@ -314,6 +315,7 @@ class WorkbooksApi
    * @return Array $user_queues - an array of queues as returned at login time
   **/
   public function getUserQueues() {
+    $this->ensureLogin();
     return $this->user_queues;
   }
 
@@ -382,9 +384,6 @@ class WorkbooksApi
   **/
   public function setConnectTimeout($connect_timeout) {
     $this->connect_timeout = $connect_timeout;
-    if ($this->curl_handle != NULL) {
-      curl_setopt($this->curl_handle, CURLOPT_CONNECTTIMEOUT, $connect_timeout);
-    }
     return $this;
   }
 
@@ -404,9 +403,6 @@ class WorkbooksApi
   **/
   public function setRequestTimeout($request_timeout) {
     $this->request_timeout = $request_timeout;
-    if ($this->curl_handle != NULL) {
-      curl_setopt($this->curl_handle, CURLOPT_TIMEOUT, $request_timeout);
-    }
     return $this;
   }
 
@@ -492,6 +488,7 @@ class WorkbooksApi
    * @return String $encoded_database_instance_id the database instance the session is associated with
   **/
   public function getDatabaseInstanceRef() {
+    $this->ensureLogin();
     return strrev(base64_encode($this->database_instance_id + 17));
   }
   
@@ -521,7 +518,7 @@ class WorkbooksApi
    * log records. Only useful when running within the Process Engine environment. Each request
    * gets a new sequence number.
   **/
-  public function resetApiLoggingSeq() {
+  private function resetApiLoggingSeq() {
     $this->api_logging_seq = 0;
     return $this;
   }
@@ -593,9 +590,27 @@ class WorkbooksApi
   public function getLoginState() {
     return $this->login_state;
   }
-  
+
+  /**
+   * Store the Login response
+   * @param $login_response - the response returned after successful login
+   */
+  public function setLoginResponse($login_response)
+  {
+    $this->login_response = $login_response;
+  }
+
+  /**
+   * @return the response after logging in
+   */
+  public function getLoginResponse()
+  {
+    return $this->login_response;
+  }
+
   /**
    * Set the auto_logout flag.
+   * NOTE: Deprecated; this flag no longer has any effect.  Call logout directly.
    *
    * @param Boolean $auto_logout true to logout automatically, false to leave the session
   **/
@@ -606,6 +621,7 @@ class WorkbooksApi
   
   /**
    * Get the auto_logout flag.
+   * NOTE: Deprecated; this flag no longer has any effect.  Call logout directly.
    *
    * @return Boolean $auto_logout true to logout automatically, false to leave the session
   **/
@@ -680,13 +696,13 @@ class WorkbooksApi
    * Call the logger function, if any.
    *
    * @param String $msg a string to be logged
-   * @param Mixed $expression any values to output with the message
+   * @param Mixed $expression optional, any values to output with the message
    * @param String $level optional: one of 'error', 'warning', 'notice', 'info', 'debug' (the default), or 'output'
    * @param Integer $log_size_limit the maximum size msg that will be logged.
   **/
-  public function log($msg, $expression='nil', $level='debug', $log_size_limit=4096) {
+  public function log($msg, $expression=NULL, $level='debug', $log_size_limit=4096) {
     if (isset($this->logger_callback)) {
-      if ($expression != 'nil') {
+      if ($expression !== NULL && $expression != 'nil') {
         $msg .= ' «' . var_export($expression, true) . '»';
       }
 
@@ -736,6 +752,63 @@ class WorkbooksApi
   **/    
   public function output($str) {
     echo "\n\n[outbin] " . chunk_split(base64_encode($str), 1024*1024, "\n\n[outbin] ") . "\n\n";
+  }
+  
+  /**
+   * Internal function to send commands back to the desktop when running as a Button Process or On Save Process. 
+  **/    
+  protected function desktopAction($action_and_parameters) {
+    $json = json_encode($action_and_parameters);
+    echo "\n\n[desktop_action] $json\n\n";
+  }
+  
+  /**
+   * Helper function to open a window in the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopOpenWindow($url) {
+    self::desktopAction(array('open' => $url));
+  }
+  
+  /**
+   * Helper function to close the current window in the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopCloseCurrentWindow() {
+    self::desktopAction(array('close' => ''));
+  }
+  
+  /**
+   * Helper function to open a record in the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopOpenRecordByObjectRef($object_ref) {
+    self::desktopAction(array('open_record_by_object_ref' => $object_ref));
+  }
+  
+  /**
+   * Helper function to open a record in the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopOpenRecordByIdAndType($type, $id) {
+    self::desktopAction(array('open_record_by_id_and_type' => array('type' => $type, 'id' => $id)));
+  }
+  
+  /**
+   * Helper function to display a message box in the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopMessage($title, $body) {
+    self::desktopAction(array('message' => array('title' => $title, 'body' => $body)));
+  }
+  
+  /**
+   * Helper function to open a new browser tab from the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopExternalUrl($url) {
+    self::desktopAction(array('external_new_window' => $url));
+  }
+  
+  /**
+   * Helper function to activate a named tab in the current window on the desktop when running as a Button Process or On Save Process. 
+  **/    
+  public function desktopActivateTab($tab_name) {
+    self::desktopAction(array('activate_tab' => $tab_name));
   }
   
   /**
@@ -863,6 +936,7 @@ class WorkbooksApi
       $this->setUserQueues($response['my_queues']);
       $this->setAuthenticityToken($response['authenticity_token']);
       $this->setDatabaseInstanceId($response['database_instance_id']);
+      $this->setLoginResponse($response);
     }
     
     $retval = array(
@@ -1070,7 +1144,7 @@ class WorkbooksApi
   /**
    * Ensure we are logged in; if not then reconnect to the service if possible.
   **/
-  protected function ensureLogin() {
+  public function ensureLogin() {
     if (!$this->getLoginState() && 
         $this->getUsername() &&
         $this->getSessionId() &&
@@ -1084,15 +1158,13 @@ class WorkbooksApi
       **/
 
       // Exit codes which mean something to the Workbooks Process Engine.
-      $exit_ok = 0;
       $exit_retry = 1;
-      $exit_disable = 2;
 
       try {
         $login_response = $this->login(array());
         if ($login_response['http_status'] <> WorkbooksApi::HTTP_STATUS_OK) {
-          $this->log('Workbooks connection unsuccessful.', $login_response['failure_message'], 'error');
-          exit($exit_disable); // disable the script and issue notification if the Action is scheduled
+          $this->log('Workbooks connection unsuccessful.', $login_response['http_status'], $login_response['failure_message'], 'error');
+          exit($exit_retry); // retry later if the Action is scheduled
         }
       }
       catch(Exception $e) {
@@ -1102,7 +1174,7 @@ class WorkbooksApi
           exit($exit_retry); // retry later if the Action is scheduled
         }
         $this->log('Workbooks connection unsuccessful', $e->getMessage(), 'error');
-        exit($exit_disable); // disable the script and issue notification if the Action is scheduled
+        exit($exit_retry); // retry later if the Action is scheduled
       }
     }
     
@@ -1127,7 +1199,8 @@ class WorkbooksApi
    * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
    * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
    * @param Array $options Optional options to pass through to makeRequest(). For backwards-compatability, setting this instead
-   *   to 'true' or 'false' toggles the decoding of JSON
+   *   to true or false toggles the decoding of JSON. Passing option 'async' set to true returns a request handle; the response
+   *   should be retrieved later using the response() method.
    * @return Array the decoded json response if $decode_json is true (default), or the raw response if not.
    * @throws WorkbooksApiException
    *
@@ -1152,6 +1225,11 @@ class WorkbooksApi
     // Including ANY extension will prevent '.api' from being appended.
     if (!preg_match('/\.\w{3,4}/', $endpoint)) {
       $endpoint .= '.api';
+    }
+
+    $async_request = (isset($options['async']) ? $options['async'] : false);
+    if ($async_request) {
+      return self::asyncRequest($endpoint, $method, $post_params, $ordered_post_params, $options);
     }
 
     $sr = self::makeRequest($endpoint, $method, $post_params, $ordered_post_params, $options);
@@ -1182,32 +1260,14 @@ class WorkbooksApi
   }
 
   /**
-   * Builds and sends an HTTP request.
-   *
-   * Exceptions are raised if curl reports an error, for example a failure to 
-   * resolve the service name, or an inability to make a connection to the service.
-   * Assuming the service can be contacted errors and warnings are passed back so
-   * the caller can capture the http_status of the response.
-   *
-   * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
-   * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
-   * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
-   * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
-   * @param Array $options Optional options,:
-   *    * 'content_type' which defaults to 'application/x-www-form-urlencoded'
-   *    * 'follow_redirects' which defaults to true
-   * @return Array (Integer the http status, String the response text)
-   * @throws WorkbooksApiException
+   * Assemble parameters and create and return a set of curl options. Parameters as per makeRequest(). 
   **/
-  public function makeRequest($endpoint, $method, $post_params, $ordered_post_params=array(), $options=array()) {
-    
-    // $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
+  private function buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq) {
     $content_type=(isset($options['content_type']) ? $options['content_type'] : WorkbooksApi::FORM_URL_ENCODED);
     $follow_redirects=(isset($options['follow_redirects']) ? $options['follow_redirects'] : true);
 
-    $start_time = microtime(true);
     $url_params = array(
-      '_dc'     => round($start_time*1000), // cache-buster
+      '_dc'     => round(microtime(true)*1000), // cache-buster
     );
     $url = $this->getUrl($endpoint, $url_params);
 
@@ -1216,8 +1276,6 @@ class WorkbooksApi
       'client'  => 'api',
     ), $post_params);
     
-    $api_logging_key = $this->getApiLoggingKey();
-    $api_logging_seq = $this->nextApiLoggingSeq();
     if (isset($api_logging_key)) {
       $post_params = array_merge(array(
         'api_logging_key' => $api_logging_key,
@@ -1288,41 +1346,32 @@ class WorkbooksApi
       $post_fields = join("\r\n", $body);
     }
 
-    $curl_handle = $this->getCurlHandle();
-
     $headers = array(
         "Content-type: {$content_type}",
         'Expect:', // Prevent 'Expect: 100-continue' 
     );
     if (is_string($post_fields)) { $headers[] = 'Content-Length: ' . strlen($post_fields); }
 
-    curl_setopt_array($curl_handle, $this->curl_options);
-    curl_setopt_array($curl_handle, array (
+    $curl_options = $this->curl_options + array (
       CURLOPT_URL            => $url,
       CURLOPT_HTTPHEADER     => $headers,
       CURLOPT_POSTFIELDS     => $post_fields,
-      CURLOPT_RETURNTRANSFER => true,
-      CURLOPT_HEADER         => true,
       CURLOPT_FOLLOWLOCATION => $follow_redirects,
-      CURLOPT_POST           => true,
-    ));
-
+      CURLOPT_CONNECTTIMEOUT => $this->connect_timeout,
+      CURLOPT_TIMEOUT        => $this->request_timeout,
+      CURLOPT_PRIVATE        => $api_logging_seq,
+    );
     $cookie = $this->getSessionCookie();
     if (isset($cookie)) {
-      curl_setopt($curl_handle, CURLOPT_COOKIE, $cookie);
+      $curl_options[CURLOPT_COOKIE] = $cookie;
     }
-
-    if (isset($api_logging_key)) {
-      $this->log($api_logging_seq, array($method, $endpoint), 'api_request');
-    }
-    // Make the request, await the response. Timeouts as above.
-    $curl_result_with_headers = curl_exec($curl_handle);
-    if (isset($api_logging_key)) {
-      $this->log($api_logging_seq, array($method, $endpoint), 'api_response');
-    }
-
-    // $this->log('RESPONSE', $curl_result_with_headers);
-    
+    return $curl_options;
+  }
+  
+  /**
+   * Parse the HTTPS response, throwing exceptions on failure. Return as for makeRequest().
+  **/
+  private function parseCurlResult($curl_handle, $curl_result_with_headers) {
     if ($curl_result_with_headers === false) {
       $e = new WorkbooksApiException(array(
         'workbooks_api' => $this,
@@ -1362,12 +1411,186 @@ class WorkbooksApi
     preg_match('/^Set-Cookie: Workbooks-Session=(.*?);/m', $headers, $session_cookie);
     $this->setSessionId((is_array($session_cookie) && (count($session_cookie) > 1)) ? $session_cookie[1]: '');
     
+    return array('http_status' => $http_status, 'http_body' => &$body);
+  }
+  
+  /**
+   * Builds and sends an HTTP request, waiting for the response.
+   *
+   * Exceptions are raised if curl reports an error, for example a failure to 
+   * resolve the service name, or an inability to make a connection to the service.
+   * Assuming the service can be contacted errors and warnings are passed back so
+   * the caller can capture the http_status of the response.
+   *
+   * @param String $endpoint selects the portion of the API to use, e.g. 'crm/organisations'.
+   * @param String $method the restful method - one of 'GET', 'PUT', 'POST', 'DELETE'.
+   * @param Array $post_params A hash of uniquely-named parameters to add to the POST body.
+   * @param Array $ordered_post_params A simple array of additional parameters, to use for the POST body (may have duplicate keys e.g. 'id[]')
+   * @param Array $options Optional options,:
+   *    * 'content_type' which defaults to 'application/x-www-form-urlencoded'
+   *    * 'follow_redirects' which defaults to true
+   * @return Array (Integer the http status, String the response text)
+   * @throws WorkbooksApiException
+  **/
+  public function makeRequest($endpoint, $method, $post_params, $ordered_post_params=array(), $options=array()) {
+//    $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
+    $api_logging_key = $this->getApiLoggingKey();
+    $api_logging_seq = $this->nextApiLoggingSeq();
+    $curl_handle = $this->getCurlHandle();
+    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq);
+    curl_setopt_array($curl_handle, $curl_options);
+
+    if (isset($api_logging_key)) {
+      $this->log($api_logging_seq, array($method, $endpoint), 'api_request');
+    }
+    // Make the request, await the response. Timeouts as above.
+    $start_time = microtime(true);
+    
+    $curl_result_with_headers = curl_exec($curl_handle);
+
     $end_time = microtime(true);
     $this->setLastRequestDuration($end_time - $start_time);
-    
-    $retval = array('http_status' => $http_status, 'http_body' => &$body);
+
+    if (isset($api_logging_key)) {
+      $this->log($api_logging_seq, array($method, $endpoint), 'api_response');
+    }
+
+    $retval = $this->parseCurlResult($curl_handle, $curl_result_with_headers);
     // $this->log('makeRequest() returns', $retval);
     return $retval;
+  }
+
+  /**
+   * Send a request and do not wait for a response. Responses are gathered using asyncResponse() and assertAsyncResponse().
+   * Parameters as per makeRequest(). 
+   * @return Array The constructed request.
+  **/
+  private function asyncRequest($endpoint, $method, $post_params, $ordered_post_params=array(), $options=array()) {
+    //$this->log('asyncRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
+    $api_logging_key = $this->getApiLoggingKey();
+    $api_logging_seq = $this->nextApiLoggingSeq();
+    if (isset($api_logging_key)) {
+      $this->log($api_logging_seq, array($method, $endpoint), 'api_request');
+    }
+    $curl_handle = curl_init();
+    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq);
+    curl_setopt_array($curl_handle, $curl_options);
+
+    $request = array( // Augmented when processed with keys: 'received', 'http_status', 'http_body'. 
+      'endpoint' => $endpoint,
+      'method' => $method,
+      'curl_handle' => $curl_handle,
+      'api_logging_key' => $api_logging_key,
+      'api_logging_seq' => $api_logging_seq,
+      'options' => $options,
+    );
+    
+    if (count($this->async_running) < WorkbooksApi::PARALLEL_CONCURRENCY_LIMIT) {
+      curl_multi_add_handle($this->getCurlMultiHandle(), $curl_handle);
+      $request['start_time'] = microtime(true);
+      $this->async_running += array($api_logging_seq => $request);
+      //$this->log("asyncRequest() started request {$api_logging_seq} " . (microtime(true)), $request);
+    } else {
+      $this->async_queue[] = $request;
+      //$this->log("asyncRequest() queued request {$api_logging_seq} " . (microtime(true)), $request);
+    }
+    //$this->log('asyncRequest() returns', $request);
+    return $request;
+  }
+
+  /**
+   * Gather up the response to an async request.
+   *
+   * By its nature a number of other requests may complete in the meantime.
+   *
+   * Exceptions are not raised if curl reports an error, instead each returned response object includes diagnostics.
+   *
+   * @param Array $request A request as generated by get(), update(), create() or delete() with the 'async' option set to true.
+   * @return Array $response The set of response for the request, or NULL if the request has not completed and option 'async'
+   *         is supplied and true.
+  **/
+  public function asyncResponse($request, $options=array()) {
+    //$this->log('asyncResponse() called for request', $request);
+
+    // The request may already have been completed, during a previous iteration of this method, and its response stored.
+    $api_logging_seq = @$request['api_logging_seq'];
+    if (empty($api_logging_seq)) { // The caller may well have used update(), create() or delete() with insufficient parameters
+      throw new Exception('asyncResponse() was not passed an async request');
+    }
+    if (isset($this->async_running[$api_logging_seq]['received'])) {
+      $completed_request = $this->async_running[$api_logging_seq];
+      $this->setLastRequestDuration($completed_request['end_time'] - $completed_request['start_time']);
+
+      $parsed = $this->parseCurlResult($completed_request['curl_handle'], $completed_request['received']);
+      $completed_request['http_status'] = $parsed['http_status'];
+      $completed_request['http_body'] = $parsed['http_body'];
+
+      unset($completed_request['curl_handle']);
+      unset($this->async_running[$api_logging_seq]); 
+
+      $decode_json = isset($completed_request['options']['decode_json']) ? $completed_request['options']['decode_json'] : true;
+      return $decode_json ? json_decode($completed_request['http_body'], true) : $completed_request['http_body'];
+    }
+
+    // Loop waiting for more responses.
+    $curl_multi_handle = $this->getCurlMultiHandle();
+    $non_blocking = (isset($options['async']) ? $options['async'] : false);
+
+    do {
+      while (($execrun = curl_multi_exec($curl_multi_handle, $running)) == CURLM_CALL_MULTI_PERFORM);
+      if ($execrun != CURLM_OK) {
+        $this->log('curl_multi_exec failure', $execrun);
+        break; 
+      }
+
+      // As requests complete gather their responses.
+      if ($completed = curl_multi_info_read($curl_multi_handle)) {
+        $curl_handle = $completed['handle'];
+        $info = curl_getinfo($curl_handle);
+        $api_logging_seq = (integer)curl_getinfo($curl_handle, CURLINFO_PRIVATE); // not returned by the simple curl_getinfo() above.
+        $completed_request = &$this->async_running[$api_logging_seq];
+        //$this->log("asyncResponse() completed request {$api_logging_seq} " . (microtime(true)), $completed_request);
+        if (isset($completed_request['api_logging_key'])) {
+          $this->log($completed_request['api_logging_seq'], array($completed_request['method'], $completed_request['endpoint']), 'api_response');
+        }
+        //$this->log("asyncResponse() response", sprintf("%30s %90s %0.5f %d", $completed_request['endpoint'], $info['url'], $info['total_time'], $info['http_code']));
+        $completed_request['received'] = curl_multi_getcontent($curl_handle);
+        $completed_request['end_time'] = microtime(true);
+        if ($api_logging_seq == $request['api_logging_seq']) {
+          return $this->asyncResponse($completed_request, $options);
+        }
+        $running = true;  
+      }
+      
+      // Process items from the queue if there is now room.
+      if (count($this->async_running) < WorkbooksApi::PARALLEL_CONCURRENCY_LIMIT && !empty($this->async_queue)) {
+        $queued_request = array_shift($this->async_queue); 
+        curl_multi_add_handle($curl_multi_handle, $queued_request['curl_handle']);
+        $queued_request['start_time'] = microtime(true);
+        $this->async_running += array($queued_request['api_logging_seq'] => $queued_request);
+        //$this->log("asyncRequest() started request " . $queued_request['api_logging_seq'] . " from queue " . (microtime(true)) . " " . $this->async_running . " running", $queued_request);
+        $running = true;  
+      }
+
+      if ($non_blocking) {
+        //$this->log("asyncResponse() not waiting for a response");
+        return NULL;
+      }
+    } while ($running);
+
+    $this->destroyCurlMultiHandle();
+    //$this->log("asyncResponse() ran to the end (unexpected)");
+    return NULL;
+  }
+  
+  /**
+   * Interface as per asyncResponse() but if the response is not 'ok' it also logs an error for each and raises an exception.
+  **/
+  public function assertAsyncResponse($request, $options=array()) {
+    $response = $this->asyncResponse($request, $options);
+    //$this->log('assertAsyncResponse returning', $response);
+    $this->assertResponse($response);
+    return $response;
   }
 
   /*
@@ -1491,7 +1714,7 @@ class WorkbooksApi
     $retval = array();
     foreach ($obj_array as &$obj) {
       foreach ($unique_keys as $key) {
-        if (array_key_exists($key, $obj) && $obj[$key] == NULL) {
+        if (array_key_exists($key, $obj) && $obj[$key] === NULL) {
           $value = ':null_value:';
         } elseif (!isset($obj[$key])) {
           $value = ':no_value:';
