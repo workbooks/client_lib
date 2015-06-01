@@ -20,8 +20,7 @@ class WorkbooksApiTestLoginHelper
     logger.formatter = proc { |level, time, progname, msg| "[#{level}] #{msg}" }
     
     @workbooks = WorkbooksApi.new(
-    ##  :service => 'http://localhost:3000',                          # Omit this to use the production service
-        :service => 'http://sandbox:3000',                            # Omit this to use the production service
+      :service => 'http://localhost:3000',                          # Omit this to use the production service
       :application_name => 'ruby_test_client',                      # Please give your application a useful name
       :user_agent => 'ruby_test_client/0.1',                        # Please give your application a useful label
       :api_key => '01234-56789-01234-56789-01234-56789-01234-56789',

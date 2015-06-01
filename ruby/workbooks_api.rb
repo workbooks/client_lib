@@ -1,7 +1,7 @@
 #
 #  A Ruby wrapper for the Workbooks API documented at http://www.workbooks.com/api
 #
-#  Last commit $Id: workbooks_api.rb 22510 2014-07-02 09:02:59Z jkay $
+#  Last commit $Id: workbooks_api.rb 23408 2014-10-07 10:45:35Z abetteridge $
 #  License: www.workbooks.com/mit_license
 #
 #  Significant methods in the class Workbooks:
@@ -138,6 +138,7 @@ class WorkbooksApi
   attr_accessor :logger
   attr_accessor :max_log_size
   attr_accessor :http_debug_output
+  attr_reader :login_response
 
   # The content_type governs the encoding used for data transfer to the Service. Two forms are
   # supported in this binding; use FORM_DATA for file uploads.
@@ -204,6 +205,7 @@ class WorkbooksApi
   # Get the active database as a string to embed in a URL (useful for web processes).
   #
   def get_database_instance_ref
+    ensure_login
     Base64.encode64((database_instance_id.to_i+17).to_s).chomp.reverse
   end
 
@@ -276,6 +278,7 @@ class WorkbooksApi
       @user_queues = parsed_response['my_queues'].map{ |queue_name, queue_id| {queue_name.to_s => queue_id} }
       @authenticity_token = parsed_response['authenticity_token']
       @database_instance_id = parsed_response['database_instance_id']
+      @login_response = parsed_response
     end
     
     retval = {
