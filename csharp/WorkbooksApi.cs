@@ -198,7 +198,7 @@ namespace WorkbooksApiApplication
     protected string ApiKey { get; set; }
     protected string Username { get; set; }
     protected string LogicalDatabaseId { get; set; }
-    protected string databaseInstanceId;
+    protected string DatabaseInstanceId { get; set; }
     protected string AuthenticityToken { get; set; }
     protected int apiVersion = API_VERSION;
     protected bool loggedIn = false;
@@ -211,6 +211,7 @@ namespace WorkbooksApiApplication
     protected decimal LastRequestDuration { get; set; }
     protected string UserQueues { get; set; }   // when logged in contains an array of user queues
     protected string jsonPretty = "pretty";// have json print pretty
+    protected Dictionary<string, object> LoginResponse { get; set; }
 
     // Exit codes which mean something to the Workbooks Process Engine.
     const int EXIT_OK = 0;
@@ -246,15 +247,6 @@ namespace WorkbooksApiApplication
 
 
     //************* Beginning of Getter/Setter methods ***************
-
-    public string DatabaseInstanceId {
-      get {
-        return System.Convert.ToBase64String (Encoding.UTF8.GetBytes (databaseInstanceId + "17"));
-      }
-      set {
-        databaseInstanceId = value;
-      }
-    }
 
     public int ApiVersion {
       get {
@@ -330,6 +322,10 @@ namespace WorkbooksApiApplication
     }
 
     //************* End of Getter/Setter methods ***************
+
+    public string getDatabaseInstanceRef() {
+      return System.Convert.ToBase64String (Encoding.UTF8.GetBytes (this.DatabaseInstanceId + "17"));
+    }
 
     /// <summary>Constructor to build the WorkbooksApi object with the passed parameters</summary>
     /// <param name="loginParams">  parameters to be set in the object </param>
@@ -1015,7 +1011,8 @@ namespace WorkbooksApiApplication
             UserQueues = convertToString((Dictionary<string, object>)responseJsonObject["my_queues"]);
           }
           AuthenticityToken = (string)responseJsonObject ["authenticity_token"];
-          databaseInstanceId = ((int)responseJsonObject ["database_instance_id"]).ToString();
+          DatabaseInstanceId = ((int)responseJsonObject ["database_instance_id"]).ToString();
+          LoginResponse = responseJsonObject;
         }
       }
       retval = new Dictionary<string, object>();
@@ -1487,7 +1484,7 @@ namespace WorkbooksApiApplication
     /// Ensure we are logged in; if not then reconnect to the service if possible.
     /// </summary>
 
-    protected void ensureLogin() {
+    public void ensureLogin() {
 
       if (!this.isLoggedIn && this.Username != null && this.SessionId != null && this.LogicalDatabaseId != null) {
         /*
@@ -1499,7 +1496,7 @@ namespace WorkbooksApiApplication
           int http_status = (int) login_response["http_status"];
           if (http_status != WorkbooksApi.HTTP_STATUS_OK) {
             //this.log("Workbooks connection unsuccessful", new Object[] {login_response.get("failure_message")}, "error", DEFAULT_LOG_LIMIT);
-            System.Environment.Exit(EXIT_DISABLE); // disable the script and issue notification if the Action is scheduled
+            System.Environment.Exit(EXIT_RETRY); // retry later if the Action is scheduled
           }
         } catch (Exception e) {
           // Handle timeouts differently with a retry.
@@ -1509,7 +1506,7 @@ namespace WorkbooksApiApplication
             System.Environment.Exit(EXIT_RETRY); // retry later if the Action is scheduled
           }
           //          this.log("Workbooks connection unsuccessful", new Object[] {e.getMessage()}, "error", DEFAULT_LOG_LIMIT);
-          System.Environment.Exit(EXIT_DISABLE); // disable the script and issue notification if the Action is scheduled
+          System.Environment.Exit(EXIT_RETRY); // retry later if the Action is scheduled
         }
       }
 
