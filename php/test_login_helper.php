@@ -42,7 +42,7 @@ if(!function_exists('testLogin')) {
                      $application_name = 'async_test_client', 
                      $user_agent       = 'async_test_client/0.1', 
                      $verify_peer      = false,
-                     $api_key          = '03034-1d793-c4bee-823a6-06f4f-7a133-bbb9e-759ff') {
+                     $api_key          = '01234-56789-01234-56789-01234-56789-01234-56789') {
   
     /*
      * Initialise the Workbooks API object
