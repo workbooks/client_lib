@@ -77,6 +77,11 @@ namespace WorkbooksApiApplication
     public WorkbooksApiResponse (Dictionary<string, object> response) {
       this.response = response;
     }
+
+    ///<returns>The response Dictionary object</returns>
+    public Dictionary<string, object> getResponse() {
+          return response;
+    }
     /// <summary>The total number of records returned from the response </summary>
     /// <returns>The total </returns>
     public int? getTotal() {
@@ -207,6 +212,7 @@ namespace WorkbooksApiApplication
     protected string UserAgent { get; set; }
     protected int connectTimeout = 30000;
     protected bool verifyPeer = true;   // false is not correct for Production use.
+    protected bool fastLogin = true; // speed up the login by not returning my_queues and some other details during login.
     protected string service = "https://secure.workbooks.com";
     protected decimal LastRequestDuration { get; set; }
     protected string UserQueues { get; set; }   // when logged in contains an array of user queues
@@ -290,6 +296,15 @@ namespace WorkbooksApiApplication
       }
       set {
         verifyPeer = value;
+      }
+    }
+
+    public bool FastLogin {
+      get {
+        return fastLogin;
+      }
+      set {
+        fastLogin = value;
       }
     }
 
@@ -514,7 +529,7 @@ namespace WorkbooksApiApplication
         }
         try {
           if (method.Equals ("GET")) {
-            url += "?" + post_fields;
+            url += "&" + post_fields;
           }
           request = createHttpConnectionObject (url, method, post_fields, content_type);
           //this.log("post_fields", new Object[] {post_fields});
@@ -992,6 +1007,7 @@ namespace WorkbooksApiApplication
       paramsObj.Add("json", JsonPretty);
       paramsObj.Add("_strict_attribute_checking", Boolean.TrueString);
       paramsObj.Add("api_version", ApiVersion);
+      paramsObj.Add("_fast_login", FastLogin);
 
       Dictionary<string, object> serviceResponse = makeRequest("login.api", "POST", paramsObj, null, null);
       int http_status = 0;
