@@ -1,7 +1,7 @@
 #
 #  A Ruby wrapper for the Workbooks API documented at http://www.workbooks.com/api
 #
-#  Last commit $Id: workbooks_api.rb 23408 2014-10-07 10:45:35Z abetteridge $
+#  Last commit $Id: workbooks_api.rb 26428 2015-06-19 20:44:54Z jkay $
 #  License: www.workbooks.com/mit_license
 #
 #  Significant methods in the class Workbooks:
@@ -130,6 +130,7 @@ class WorkbooksApi
   attr_reader :connect_timeout
   attr_reader :request_timeout
   attr_reader :verify_peer # default: true (false is NOT correct for Production use)
+  attr_accessor :fast_login # speed up the login by not returning my_queues and some other details during login.
   attr_reader :service
   attr_reader :last_request_duration
   attr_reader :user_queues # when logged in contains an array of user queues
@@ -161,6 +162,7 @@ class WorkbooksApi
   #   - :request_timeout: how long to wait for a response in seconds (default: 120)
   #   - :verify_peer: whether to verify the peer's SSL certificate. Set this to false for some test environments but do not 
   #       do this in Production.
+  #   - :fast_login: whether to skip generating certain items (e.g. my_queues) during login
   #   - :logger: to get logging output set to an instance of Logger in which case Logger#add is called
   #   - :http_debug_output: if :logger is also set HTTP debug output is also generated
   #
@@ -172,6 +174,7 @@ class WorkbooksApi
     @connect_timeout = params[:connect_timeout] || DEFAULT_CONNECT_TIMEOUT
     @request_timeout = params[:request_timeout] || DEFAULT_REQUEST_TIMEOUT
     @verify_peer = params.has_key?(:verify_peer) ? params[:verify_peer] : true
+    @fast_login = params.has_key?(:fast_login) ? params[:fast_login] : true
     @service = params[:service] || DEFAULT_SERVICE
     @logger = params[:logger]
     @http_debug_output = params[:http_debug_output]
@@ -269,7 +272,8 @@ class WorkbooksApi
     params[:_application_name] ||= @application_name
     params[:_strict_attribute_checking] = params[:_strict_attribute_checking].nil? ? true : params[:_strict_attribute_checking]
     params[:api_version] ||= @api_version
-    
+    params[:_fast_login] ||= @fast_login
+
     response = make_request('login.api', :post, params)
     parsed_response = JSON.parse(response.body) rescue []
     # The authenticity_token is valid for a specific session and is required when any modifications are attempted.

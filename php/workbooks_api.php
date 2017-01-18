@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 25915 2015-05-08 14:52:01Z jkay $
+ *   Last commit $Id: workbooks_api.php 32434 2016-11-12 00:42:05Z jkay $
  *   License: www.workbooks.com/mit_license
  *
  *
@@ -91,6 +91,7 @@ class WorkbooksApi
   protected $connect_timeout = 120;  // 2 minutes
   protected $request_timeout = 120;
   protected $verify_peer = true;     // false is not correct for Production use.
+  protected $fast_login = true;     // speed up the login by not returning my_queues and some other details during login.
   protected $service = 'https://secure.workbooks.com';
   protected $last_request_duration = NULL;
   protected $user_queues = NULL;     // when logged in contains an array of user queues
@@ -146,6 +147,7 @@ class WorkbooksApi
    *   - request_timeout: how long to wait for a response in seconds (default: 20)
    *   - verify_peer: whether to verify the peer's SSL certificate. Set this to false for some test environments but do not 
    *       do this in Production.
+   *   - fast_login: whether to skip generating certain items (e.g. my_queues) during login
    * @param Array $params the Workbooks connection configuration
   **/
   public function __construct($params) {
@@ -205,6 +207,10 @@ class WorkbooksApi
     
     if (isset($params['verify_peer'])) {
       $this->setVerifyPeer($params['verify_peer']);
+    }
+
+    if (isset($params['fast_login'])) {
+      $this->setFastLogin($params['fast_login']);
     }
 
     $curl_handle = curl_init();
@@ -551,6 +557,24 @@ class WorkbooksApi
   **/
   public function getVerifyPeer() {
     return $this->verify_peer;
+  }
+
+  /**
+   * Set the flag for speeding up login by not generating my_queues etc
+   * @param Boolean $fast_login
+  **/
+  public function setFastLogin($fast_login) {
+    $this->fast_login = $fast_login;
+    return $this;
+  }
+
+  /**
+   * Get the flag for speeding up login by not generating my_queues etc
+   *
+   * @return Boolean
+  **/
+  public function getFastLogin() {
+    return $this->fast_login;
   }
 
   /**
@@ -923,7 +947,8 @@ class WorkbooksApi
         '_application_name'          => $this->getApplicationName(),
         'json'                       => 'pretty',
         '_strict_attribute_checking' => true,
-        'api_version'               => $this->getApiVersion(),
+        'api_version'                => $this->getApiVersion(),
+        '_fast_login'                => $this->getFastLogin(),
     ), $params);
     
     $sr = self::makeRequest('login.api', 'POST', $params);
@@ -1821,7 +1846,7 @@ if (isset($params) &&
     'logger_callback'     => array('WorkbooksApi', 'logAllToStdoutAndFlush'),  // A noisy logger
     'application_name'    => $params['_workbooks_client_name'],
     'user_agent'          => $params['_workbooks_client_name'] . '/1.0',
-    'service'             => $params['_workbooks_protocol'] . '://'. $_SERVER['REMOTE_ADDR'],
+    'service'             => (isset($params['_workbooks_service']) ? $params['_workbooks_service'] : $params['_workbooks_protocol'] . '://'. $_SERVER['REMOTE_ADDR']),
     'username'            => $params['_workbooks_username'],
     'session_id'          => $params['_workbooks_session_id'],
     'logical_database_id' => $params['_workbooks_logical_database_id'],
@@ -1843,6 +1868,10 @@ if (isset($params) &&
     }
     if (preg_match('/^_post_(.*)/m', $k, $var_name)) {
       $_POST[$var_name[1]] = $params[$k];
+    }
+    // Decode json string post parameters.
+    if (preg_match('/^_json_post_(.*)/m', $k, $var_name)) {
+      $_POST[$var_name[1]] = json_decode($params[$k], true);
     }
     if (preg_match('/^_cookie_(.*)/m', $k, $var_name)) {
       $_COOKIE[$var_name[1]] = $params[$k];
