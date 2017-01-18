@@ -11,7 +11,7 @@ namespace ApiWrapper
   public class PdfExample
   {
     static WorkbooksApi  workbooks = null;
-    int pdfTemplateId = 232;
+    int pdfTemplateId = 34;
     static TestLoginHelper login = null;
 
     public static void Main() {
@@ -57,13 +57,16 @@ namespace ApiWrapper
             int orderId = (int) ((Dictionary<string, object>)allData[0])["id"];
             // Now generate the PDF
 
-            String url = "accounting/sales_orders/" + orderId + ".pdf?template=" + pdfTemplateId ;
+            String url = "accounting/sales_orders/" + orderId + ".pdf";
 
             // Important to add the decode_json as false for PDFs
             Dictionary<string, object> options = new Dictionary<string, object> ();
             options.Add("decode_json", false);
 
-            workbooks.get(url, null, options);
+            Dictionary<string, object> templateParams = new Dictionary<string, object> ();
+            templateParams.Add("template", pdfTemplateId);
+
+            workbooks.get(url, templateParams, options);
             workbooks.log("generatePDFs finished");
           }
         }
