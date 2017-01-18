@@ -37,7 +37,7 @@ import javax.xml.bind.DatatypeConverter;
 /** A Java wrapper for the Workbooks API 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: WorkbooksApi.java 26106 2015-05-27 09:37:57Z bviroja $
+ * 	Last commit $Id: WorkbooksApi.java 26428 2015-06-19 20:44:54Z jkay $
  *
  *
  *  Significant methods in the class Workbooks:
@@ -276,8 +276,8 @@ public class WorkbooksApi {
 	protected String application_name = null;
 	protected String user_agent = null;
 	protected int connect_timeout = 120; // 2 minutes
-	protected boolean verify_peer = true; // false is not correct for
-	// Production use.
+	protected boolean verify_peer = true; // false is not correct for Production use.
+	protected boolean fast_login = true; // speed up the login by not returning my_queues and some other details during login.
 	protected String service = "https://secure.workbooks.com";
 	protected long last_request_duration = 0;
 	protected String user_queues = null; // when logged in contains an array of user queues
@@ -368,6 +368,9 @@ public class WorkbooksApi {
 		}
 		if (params.containsKey("verify_peer")) {
 			this.setVerify_peer((Boolean) params.get("verify_peer"));
+		}
+		if (params.containsKey("fast_login")) {
+			this.setFast_login((Boolean) params.get("fast_login"));
 		}
 		if (params.containsKey("jsonPretty")) {
 			this.setJsonPretty((String)params.get("jsonPretty"));
@@ -533,7 +536,7 @@ public class WorkbooksApi {
 		params.put("json", this.getJsonPretty());
 		params.put("_strict_attribute_checking", Boolean.toString(true));
 		params.put("api_version", Integer.toString(this.getApi_version()));
-		
+    params.put("_fast_login", Boolean.toString(this.isFast_login()));
 		HashMap<String, Object> serviceResponse = makeRequest("login.api", "POST", params, null, null);
 		int http_status = 0;
 		String response = null;
@@ -1781,6 +1784,14 @@ public class WorkbooksApi {
 
 	public void setVerify_peer(boolean verify_peer) {
 		this.verify_peer = verify_peer;
+	}
+
+	public boolean isFast_login() {
+		return fast_login;
+	}
+
+	public void setFast_login(boolean fast_login) {
+		this.fast_login = fast_login;
 	}
 
 	public String getService() {
