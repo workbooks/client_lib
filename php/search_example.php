@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to search for records using
  *   their most significant fields via a thin PHP wrapper
  *
- *   Last commit $Id: search_example.php 22441 2014-06-25 08:26:14Z jkay $
+ *   Last commit $Id: search_example.php 30100 2016-04-08 09:11:53Z jmonahan $
  *
  *       The MIT License
  *
@@ -78,7 +78,7 @@ if ( $response['total'] <= 0 ||  $response['total'] >= 100 ) {
  */
 $response = $workbooks->assertGet('searchables.api',
   array(
-    'search' => 'a b',
+    'search' => 'ORG',
     '_sort' => 'relevance',
     '_dir' => 'DESC'
   )

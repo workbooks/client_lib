@@ -2,7 +2,7 @@
 /**
  *   A demonstration of using the Workbooks API to ... via a thin PHP wrapper
  *
- *   Last commit $Id: quote_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: quote_example.php 31149 2016-07-15 08:22:45Z swhitehouse $
  *
  *       The MIT License
  *
@@ -82,7 +82,7 @@ $creation_response = $workbooks->assertCreate('accounting/quotations.api', $crea
  */
 $workbooks->log('creation_response', $creation_response);
 $created_quote_id = $creation_response['affected_objects'][0]['id'];
-$quote_lock_version = 1; //Lock version starts at 1 once it has been created
+$quote_lock_version = $creation_response['affected_objects'][0]['lock_version']; //Lock version starts at 1 once it has been created
 
 echo 'Quote created on '.$today;
 
@@ -148,7 +148,6 @@ $update_line_item = array(
 );
 
 $workbooks->assertUpdate('accounting/quotation_line_items.api', $update_line_item);
-$quote_lock_version++; //Every time the line items are updated the quote itself is also update, so increment the lock version
 
 /**
  * Delete third line item
@@ -160,7 +159,6 @@ $delete_line_item = array(
 );
 
 $workbooks->assertDelete('accounting/quotation_line_items.api', $delete_line_item);
-$quote_lock_version++; //Every time the line items are updated the quote itself is also update, so increment the lock version
 
 /**
  * Retrieve remaining line items and log them
@@ -191,10 +189,28 @@ $workbooks->log('Line items', $remaining_line_items);
 /**
  * Delete the quotation
  * This will also delete any associated line items
+ * 
+ * Get the queue again, in case its lock version has changed 
  */
 
+$filter_quote = array(
+  '_start' => '0', 
+  '_limit' => '1',
+  '_ff[]' => 'id', 
+  '_ft[]' => 'eq', 
+  '_fc[]' => $created_quote_id, // ID of the created quote
+  '_select_columns[]' => array( // An array, of columns to select
+    'id',
+    'lock_version'
+  )
+);
+
+$response = $workbooks->assertGet('accounting/quotations.api', $filter_quote);
+$quote_lock_version = $response['data'][0]['lock_version'];
+$workbooks->log('Quotation (fetched again to get lock_version)', $response);
+    
 $delete_quote = array(
-  'id'      => $created_quote_id,
+  'id'            => $created_quote_id,
   'lock_version'  => $quote_lock_version,
 );
 

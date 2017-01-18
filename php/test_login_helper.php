@@ -38,9 +38,9 @@ $exit_ok = 0;
  * Login to Workbooks and return a handle to the workbooks connection
  */
 if(!function_exists('testLogin')) {
-  function testLogin($service          = NULL,//'http://localhost:3000',      // Set to NULL to use the production service
-                     $application_name = 'async_test_client', 
-                     $user_agent       = 'async_test_client/0.1', 
+  function testLogin($service          = 'http://localhost:3000',      // Set to NULL to use the production service
+                     $application_name = 'test_client', 
+                     $user_agent       = 'test_client/0.1', 
                      $verify_peer      = false,
                      $api_key          = '01234-56789-01234-56789-01234-56789-01234-56789') {
   
