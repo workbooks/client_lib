@@ -1469,31 +1469,25 @@ namespace WorkbooksApiApplication
     /// <summary>
     /// Normalise any nested keys so they have the expected format for the wire, i.e. convert things like this: org_lead_party[main_location[email]] into this:
     /// org_lead_party[main_location][email]
+    /// <summary>
+    /// Normalise any nested keys so they have the expected format for the wire, i.e. convert things like this: org_lead_party[main_location[email]] into this:
+    /// org_lead_party[main_location][email]
     /// </summary>
     /// <returns>The unnested attribute name.</returns>
-    /// <param name="attribute_name">Attribute_name -  the attribute name with potentially nested square brackets.</param>
-    protected string unnestKey(string attribute_name) {
-      // this->log('unnestKey() called with param', attribute_name);
+    /// <param name="attributeName">Attribute_name -  the attribute name with potentially nested square brackets.</param>
+    protected string UnnestKey(string attributeName)
+    {
+        // this->log('unnestKey() called with param', attribute_name);
 
-      // If it does not end in ']]' then it is not a nested key.
-      if (!System.Text.RegularExpressions.Regex.IsMatch(attribute_name, "\\]\\]$")) {
-        return attribute_name;
-      }
-      // Otherwise it is nested: split and re-join
-      string joinParts = null;
-      string[] parts = attribute_name.Split("[\\[\\]]+".ToCharArray(), 0);
-
-      // join the parts from the 2nd part, and so i=1
-      for (int i = 1; i < parts.Length; i++) {
-        joinParts = "][" + parts[i];
-      }
-
-      string retval = parts[0] + "[";
-      if (joinParts != null) {
-        retval += joinParts + "]";
-      }
-      //    this.log("unnestKey", new Object[] {retval});
-      return retval;
+        // If it does not end in ']]' then it is not a nested key.
+        if (!Regex.IsMatch(attributeName, "\\]\\]$"))
+        {
+            return attributeName;
+        }
+        // Otherwise it is nested: split and re-join
+        string joinParts = null;
+        string[] parts = Regex.Split(attributeName, "[\\[\\]]+");
+        return string.Join("", parts.Where(x => !string.IsNullOrEmpty(x)).Select((x, i) => i == 0 ? x : $"[{x}]"));
     }
 
     /// <summary>
