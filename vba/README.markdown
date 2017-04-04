@@ -9,7 +9,7 @@ You will need to create an API Key in Workbooks and put that in the cell A1 of t
 
 ## Requirements
 
-This binding has been tested on Windows 10 with Excel 2010.
+This binding has been tested on Windows 10 with Excel 2010 and Excel 2016 (32-bit). It is expected to work on all recent versions of Excel and Windows.
 
 ### Known Issues
 This binding was tested on macOS 10.12 with Excel 15.32 and was found to be unreliable after a small number of web requests.
