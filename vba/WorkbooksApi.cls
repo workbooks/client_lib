@@ -62,7 +62,7 @@ End Sub
 
 ' An error occurred. Report it.
 Private Sub RaiseError(Code As String, Optional Description As String = "")
-    Log Code, Description, "Error"
+    Log Code, Description, "error"
     Err.Raise DefaultErrorCode, Code, Description
 End Sub
 
