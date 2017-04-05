@@ -1474,20 +1474,23 @@ namespace WorkbooksApiApplication
     /// org_lead_party[main_location][email]
     /// </summary>
     /// <returns>The unnested attribute name.</returns>
-    /// <param name="attributeName">Attribute_name -  the attribute name with potentially nested square brackets.</param>
-    protected string UnnestKey(string attributeName)
-    {
+    /// <param name="attribute_name">attribute_name -  the attribute name with potentially nested square brackets.</param>
+    protected string unnestKey(string attribute_name) {
         // this->log('unnestKey() called with param', attribute_name);
 
         // If it does not end in ']]' then it is not a nested key.
-        if (!Regex.IsMatch(attributeName, "\\]\\]$"))
-        {
-            return attributeName;
-        }
+        if (!System.Text.RegularExpressions.Regex.IsMatch(attribute_name, "\\]\\]$")) { return attribute_name; }
+
         // Otherwise it is nested: split and re-join
-        string joinParts = null;
-        string[] parts = Regex.Split(attributeName, "[\\[\\]]+");
-        return string.Join("", parts.Where(x => !string.IsNullOrEmpty(x)).Select((x, i) => i == 0 ? x : $"[{x}]"));
+        string[] parts = System.Text.RegularExpressions.Regex.Split(attribute_name, "[\\[\\]]+");
+        string retval = parts[0];
+        for (int i = 1; i < parts.Length; i++) {
+            if (!string.IsNullOrEmpty(parts[i])) {
+                retval += string.Format("[{0}]", parts[i]);
+            }
+        }
+        //this.log("unnestKey", new Object[] {retval});
+        return retval;
     }
 
     /// <summary>
