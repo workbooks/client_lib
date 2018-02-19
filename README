@@ -1,3 +1,9 @@
 Client libraries for the Workbooks API. 
+
 See http://www.workbooks.com/api for documentation.
+
+
+Note that these libraries do not change often, because they do not need to.  They are "wrappers" for the Workbooks API which make it easier to work with than using HTTPS requests and responses directly.  The Workbooks API is designed so that it is based on metadata and although features are added to Workbooks with every release the API does not change.  As far as possible API changes are backwards compatible.  We are proud that software written to our original 1.0 API back in 2009 continues to be both supported and supportable.
+
+To find out more about the many records and fields within your Workbooks database navigate within Workbooks to Configuration > Automation > API Reference.
 

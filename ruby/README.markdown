@@ -2,6 +2,10 @@
 
 See the ruby code here in github for simple usage examples to explore the objects returned by the API. The comments in the `workbooks_api.rb` file contain additional information to that here.
 
+Note that this software does not change often, because it does not need to.  The Workbooks API is designed so that it is based on metadata and although features are added to Workbooks with every release the API does not change.  As far as possible API changes are backwards compatible.  We are proud that software written to our original 1.0 API back in 2009 continues to be both supported and supportable.
+
+To find out more about the many records and fields within your Workbooks database navigate within Workbooks to Configuration > Automation > API Reference.
+
 ## Usage
 
 External scripts can authenticate using an API Key or a username and password. In the examples included here authentication is done in `test_login_helper.rb` using an API Key: just pass the `:api_key` parameter when you create a new `WorkbooksApi` object.
