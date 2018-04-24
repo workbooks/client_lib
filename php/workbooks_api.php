@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 32434 2016-11-12 00:42:05Z jkay $
+ *   Last commit $Id: workbooks_api.php 39396 2018-04-23 15:28:43Z emustac $
  *   License: www.workbooks.com/mit_license
  *
  *
@@ -98,6 +98,7 @@ class WorkbooksApi
   protected $login_response = NULL;
   protected $async_running = array();// In-flight async requests
   protected $async_queue = array();  // Async requests not sent yet (concurrency limit exceeded)
+  protected $audit_lifetime_days = NULL; // If set to a positive integer audit records expire and are automatically deleted
   
   /**
    * Those HTTP status codes of particular significance to the API.
@@ -539,6 +540,25 @@ class WorkbooksApi
     return $this->api_logging_seq;
   }
   
+  /**
+   * Set the Audit Lifetime in days (which defaults to NULL, i.e. do not automatically delete)
+   *
+   * @param Integer $audit_lifetime_days the number of days after which audit records should be automatically deleted
+  **/
+  public function setAuditLifetime($audit_lifetime_days) {
+    $this->audit_lifetime_days = $audit_lifetime_days;
+    return $this;
+  }
+
+  /**
+   * Get the Audit Lifetime (in days)
+   *
+   * @return Integer the audit lifetime, or NULL (the default)
+  **/
+  public function getAuditLifetime() {
+    return $this->audit_lifetime_days;
+  }
+
   /**
    * Set the flag for verifying the peer's SSL certificate. When connecting to test servers
    * you may need to turn peer verification off.
@@ -1276,6 +1296,11 @@ class WorkbooksApi
 
     if ($options['decode_json']) {
       $response = json_decode($sr['http_body'], true);
+      if (json_last_error() === JSON_ERROR_UTF8) {
+//        $http_body = iconv('UTF-8', 'UTF-8//IGNORE', $sr['http_body']);
+        $http_body = mb_convert_encoding($sr['http_body'], 'UTF-8', 'UTF-8');
+        $response = json_decode($http_body, true);
+      }
     } else {
       $response = $sr['http_body'];
     }
@@ -1287,7 +1312,7 @@ class WorkbooksApi
   /**
    * Assemble parameters and create and return a set of curl options. Parameters as per makeRequest(). 
   **/
-  private function buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq) {
+  private function buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq, $audit_lifetime) {
     $content_type=(isset($options['content_type']) ? $options['content_type'] : WorkbooksApi::FORM_URL_ENCODED);
     $follow_redirects=(isset($options['follow_redirects']) ? $options['follow_redirects'] : true);
 
@@ -1307,7 +1332,13 @@ class WorkbooksApi
         'api_logging_seq' => $api_logging_seq,
       ), $post_params);
     }
-    
+
+    if (isset($audit_lifetime)) {
+      $post_params = array_merge(array(
+        '_audit_lifetime_days' => $audit_lifetime,
+      ), $post_params);
+    }
+
     if ($method != 'GET' && $this->getAuthenticityToken()) {
       $post_params = array_merge(array(
         '_authenticity_token' => $this->getAuthenticityToken()
@@ -1461,8 +1492,9 @@ class WorkbooksApi
 //    $this->log('makeRequest() called with params', array($endpoint, $method, $post_params, $ordered_post_params, $options));
     $api_logging_key = $this->getApiLoggingKey();
     $api_logging_seq = $this->nextApiLoggingSeq();
+    $audit_lifetime = $this->getAuditLifetime();
     $curl_handle = $this->getCurlHandle();
-    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq);
+    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq, $audit_lifetime);
     curl_setopt_array($curl_handle, $curl_options);
 
     if (isset($api_logging_key)) {
@@ -1497,8 +1529,9 @@ class WorkbooksApi
     if (isset($api_logging_key)) {
       $this->log($api_logging_seq, array($method, $endpoint), 'api_request');
     }
+    $audit_lifetime = $this->getAuditLifetime();
     $curl_handle = curl_init();
-    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq);
+    $curl_options = $this->buildCurlRequest($endpoint, $method, $post_params, $ordered_post_params, $options, $api_logging_key, $api_logging_seq, $audit_lifetime);
     curl_setopt_array($curl_handle, $curl_options);
 
     $request = array( // Augmented when processed with keys: 'received', 'http_status', 'http_body'. 
