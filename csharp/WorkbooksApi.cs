@@ -858,6 +858,7 @@ namespace WorkbooksApiApplication
     private Dictionary<string, object> decodeJson(string jsonString) {
       try {
         var javascriptSerializer = new JavaScriptSerializer ();
+        javascriptSerializer.MaxJsonLength = int.MaxValue;
         var dict = javascriptSerializer.DeserializeObject (jsonString);
         return (Dictionary<string, object>) dict;
       } catch(Exception e) {
