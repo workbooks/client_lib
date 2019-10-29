@@ -210,7 +210,7 @@ namespace WorkbooksApiApplication
     protected bool autoLogout = true;   // true => call logout() in destroy hook
     protected string ApplicationName { get; set; }
     protected string UserAgent { get; set; }
-    protected int connectTimeout = 30000;
+    protected int connectTimeout = 120000;
     protected bool verifyPeer = true;   // false is not correct for Production use.
     protected bool fastLogin = true; // speed up the login by not returning my_queues and some other details during login.
     protected string service = "https://secure.workbooks.com";
