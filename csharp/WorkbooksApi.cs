@@ -123,7 +123,7 @@ namespace WorkbooksApiApplication
     /// <returns> first affected object </returns>
     public Dictionary<string, object> getFirstAffectedObject() {
       object[] allData = getAffectedObjects();
-      if (allData != null) {
+      if (allData != null && allData.Length > 0) {
         return (Dictionary<string, object>) allData[0];
       } else {
         return null;
@@ -134,7 +134,7 @@ namespace WorkbooksApiApplication
     /// <returns> the first data object </returns>
     public Dictionary<string, object> getFirstData() {
       object[] allData = getData();
-      if (allData != null) {
+      if (allData != null && allData.Length > 0) {
         return (Dictionary<string, object>)allData[0];
       } else {
         return null;
