@@ -1,6 +1,6 @@
 # Introducing Workbooks
 
-Workbooks is an integrated suite of CRM and Business applications designed explicitly to give small and mid-size organisations the tools to drive top line growth, increase productivity, reduce operating costs and improve the performance of their
+<a href="https://www.workbooks.com">Workbooks</a> is an integrated suite of CRM and Business applications designed explicitly to give small and mid-size organisations the tools to drive top line growth, increase productivity, reduce operating costs and improve the performance of their
 business.
 
 Accessed as an online service from anywhere with an internet connection, Workbooks brings together customer relationship management (CRM) and back-office accounting applications that up until now have been managed by disparate systems unable to
@@ -17,13 +17,14 @@ To adapt Workbooks to the needs of your business you may not need to resort to t
 
 The Workbooks API allows developers to have access to information stored inside Workbooks using a simple, powerful and secure Web Service API. The API allows complete access to Workbooks record types, allowing you to read, create, update and delete records. Additionally it permits access to searching, metadata about the schema, and a variety of other facilities. 
 
-The API is the "contract" between Workbooks and its client applications, as such we work to ensure that code written to the API in 2009 continues to work correctly with the evolved Workbooks service today.
+The API is the "contract" between Workbooks and its client applications, as such we work to ensure that code written to the API in <a href="https://www.workbooks.com/resource-documents/workbooks-company-timeline/">2009</a> continues to work correctly with the evolved Workbooks service today.
 
-We have published *bindings* for PHP, Ruby, .NET (C#) and Java on github at http://github.com/workbooks/client_lib and they are published under the MIT license. We recommend that you use these bindings rather than making calls directly using the raw HTTP and the underlying "wire protocol". Note that these bindings do not change often, because they do not need to.  They are "wrappers" for the Workbooks API which make it easier to work with than using HTTPS requests and responses directly. 
+We have published bindings for <a href="https://github.com/workbooks/client_lib/tree/master/php">PHP</a>, <a href="https://github.com/workbooks/client_lib/tree/master/ruby">Ruby</a>, <a href="https://github.com/workbooks/client_lib/tree/master/csharp">.NET (C#)</a> and <a href="https://github.com/workbooks/client_lib/tree/master/php">Java</a> on <a href="http://github.com/workbooks/client_lib/">github</a>. We recommend that you use these bindings rather than making calls directly using the raw HTTP and the underlying "wire protocol". Note that these bindings do not change often, because they do not need to.  They are "wrappers" for the Workbooks API which make it easier to work with than using HTTPS requests and responses directly.
 
-We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service. If you would like to request bindings for other languages, please contact our support team: <a href="mailto:support@workbooks.com">support@workbooks.com</a>.
+We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service. If you would like to request bindings for other languages, please <a href="mailto:support@workbooks.com">contact our support team</a>.
 
-Using the *Workbooks Process Engine* you can host API scripts within Workbooks itself; Workbooks takes care of authentication and logging automatically for scripts that run under the Process Engine. The Script Library within Workbooks provides access to Scripts which you can take and add to your own Workbooks database which are run by the Process Engine. For the majority of users we recommend using PHP scripts within the Workbooks Process Engine. More information about using the Process Engine is in the documentation for the PHP binding.
+## Workbooks Process Engine
+Using the Workbooks Process Engine you can host API scripts within Workbooks itself; Workbooks takes care of authentication and logging automatically for scripts that run under the Process Engine. The Script Library within Workbooks provides access to Scripts which you can take and add to your own Workbooks database which are run by the Process Engine. For the majority of users we recommend using PHP scripts within the Workbooks Process Engine. More information about using the Process Engine is in the documentation for the PHP binding.
 # The Schema and its Metadata
 Each Workbooks database can have custom record types in addition to standard record types, and each record type can have custom fields in addition to standard fields. The consequence of this is that an integration should use metadata to discover the configuration of the current database unless that integration depends solely on standard fields and record types. The available set of record types also depends on the licenced set of features. Over time the set of available record types and fields will change as the Workbooks service is enhanced (record types and fields are added) and customer Workbooks administrators configure custom record types and custom fields.
 
@@ -68,7 +69,7 @@ Values commonly seen from the Workbooks API are:
 | 405  | The resource does not allow the http method that was used. |
 | 406  | Unacceptable: the parameters passed are not consistent/suitable or the operation is not allowed. |
 | 500  | An error has occurred. Typically Workbooks logged an exception. Further information may be available from the Workbooks Support team if the provided exception reference can be provided promptly. |
-| 501  | The http method is not implemented. |
+| 501  | The HTTP method is not implemented. |
 
 ## Failure Reporting
 This is typically under the `failures` hash key in the response - for example if you pass in a bad lock_version to an update you will still get `HTTP/1.1 200 OK` in the HTTP headers
@@ -152,7 +153,8 @@ format the day of the month in a Date will contain a leading space when it is le
 timezone for date-times, whereas dates and times, being less precise, do not have a timezone.
 
 The API accepts date/times in the default formats and using epoch timestamps (integers).
-#Designing for performance and scalability
+
+# Designing for performance and scalability
 Workbooks is a multi-user system, so the data in your database can be changing constantly as users and other API clients add, modify and delete records. Because Workbooks can store
 very large numbers of records, it is not feasible to process all of the data at once. API clients must operate on chunks of the data, a page at a time. The consequence of paging is
 that your client is only aware of a small subset of the data, which meanwhile is being modified and shifted around by other users and clients.
@@ -177,7 +179,8 @@ another user has modified or deleted it. An API client must be designed to consi
 There are many other scenarios too. When designing an API client that will process large quantities of data it is very important to ensure that the data is retrieved correctly to avoid
 processing the same records more than once, or to inadvertently skip records.
 There are two main techniques that can be employed: queueing and deltas. Choosing filter criteria and the sort order are important to the success of either of the techniques.
-##Queuing
+
+## Queuing
 An API client that processes "unprocessed" records to apply changes should repeatedly access the first page of data with an appropriate sort order and filters that exclude records that
 have already been processed. This technique relies on having one or more fields that can be used to filter out records that need to be processed, and then marking those records once
 they have been processed so they are not selected again.
@@ -185,12 +188,14 @@ For example, consider a client that sends a welcome email to new People. We woul
 default value unticked. The client should select a page of People records ordered by id ascending, filtered by "Sent welcome email" is false, send the emails and then set the custom
 field to true on all of those records. When selecting the first page of data again, the previous records will no longer match and so the effective next page of records will be
 returned. The client should continue to repeatedly select the first page of records until there are no records left to process.
-##Deltas
+
+## Deltas
 An API client that processes "recently changed" records should store the updated_at timestamp from the last record that was processed, and a list of record ids that were processed that
 had the same `updated_at` timestamp. A page of data can selected sorted by `updated_at` ascending, filtered by `updated_at` greater than or equal to the last timestamp, and excluding
 the records that have already been processed by id. Having processed the returned records, you can store the `updated_at` timestamp of the latest record, and the ids of all records
 that were updated in the same second.
-##Response sizes
+
+## Response sizes
 The Workbooks API is designed so that clients can process large quantities of data in smaller chunks. For example, a common design for a client that synchronises Workbooks data with
 another system is to repeatedly read and process the first page of data that matches a set of criteria. The data will often be fetched from a report defined in Workbooks so as to keep
 complexity out of the program code. Each page of records is processed and modified so that they no longer match the criteria, e.g. setting a custom field to mark the record as
@@ -210,24 +215,28 @@ that small responses don't require a file too.
 Note that the Workbooks service will probably spend longer processing a request with a higher `_limit` value, although it will reduce the number of requests your client makes when
 paging through a large dataset, and so will reduce the network latency cost and bandwidth overheads. This can be useful for a batch-style client, whereas an interactive client will
 probably want to use a smaller `_limit` value to reduce the response time per request, to provide a responsive user interface.
-##Counting rows
+
+## Counting rows
 Although the quantity of data returned in a response is controlled by the `_start` and `_limit` parameters, by default Workbooks also returns a total value which is the number of
 records that could match your criteria. This is very useful when paging through a large dataset because it tells you how much more data there is to access, but calculating the count
 takes significant time. In many scenarios the total value is not needed for most requests. In fact, for a synchronisation client as described above there is never any need to know how
 many records there are to process; the client just keeps requesting the first page until you get an empty response. To tell Workbooks not to count the rows for a request, set
 `__skip_total_rows` to `true`; the total value returned will be the number of rows selected in the response rather than the full total.
-##Visibility of Deleted Objects and Delta Synchronisation
+
+## Visibility of Deleted Objects and Delta Synchronisation
 By default, deleted records are not returned when records are retrieved via the API. In reality, most records are not deleted immediately within Workbooks, but flagged as deleted and
 hidden from the user. Future service updates will allow users to manage these deleted records.
 API clients can retrieve deleted records by adding the `is_deleted` attribute to the filter criteria, `"is_deleted = 1"`. Where this becomes very useful is to support 'delta'
 synchronisation within clients that synchronise Workbooks records to third-party systems. An API request with a filter such as: `(is_deleted = 1 OR is_deleted = 0) AND updated_at >
 [last synced time]` will return all records added, modified or deleted since the previous sync. This is much more efficient than retrieving all the records and then trying to determine
 which have been deleted.
+
 # Rate Limits
 Rate limiting is imposed on API clients. There are limits of the size of result set which a client can request. Please ensure that your client is efficient and a "good citizen"; if
 your client issues excessive API calls it may be delayed or redirected via a delaying URL. If a client receives a redirect response then it should be followed: this is part of the
 normal operation of the API service.
-#About the Examples and cURL
+
+# About the Examples and cURL
 A command line is all you need to use the Workbooks API; if your system has cURL you have already got a great way to poke around the Workbooks API. cURL is a very versatile command line utility which is designed to script web page interactions; it is available for all widely-used operating systems.
 
 The examples in this document are described using the `curl` program rather than any particular programming language, because it lends itself to being a simple way to explain the API's operation without lots of programming language distractions (see the documentation for each language-specific binding if you want to see that). It is unlikely
@@ -251,6 +260,7 @@ you will write your API client using cURL, but if you wanted to, you could! Some
 Note that cURL automatically encodes parameters and adds the required `Content-Type:` header to POST requests for you: `Content-Type: application/x-www-form-urlencoded`.
 
 Windows users: please be careful with quote marks. Avoid smart quotes and use "double quotation marks" instead.
+
 #Authentication: Sessions, Login and Logout
 If your client is hosted within the Workbooks Process Engine then sessions are automatically established for you by the PHP code in `workbooks_api.php` and there is no need to explicitly handle authentication. The Process Engine uses the APIs documented below to implement this but it is transparent to the user.
 
@@ -380,7 +390,7 @@ over time so please handle Codes and Failure Reasons which are undocumented as y
   link in that email to allow login to succeed next time."
 
 Note: Workbooks API adheres to RFC2616 (Hypertext Transfer Protocol HTTP/1.1) with the exception of the WWW-Authenticate header as documented
-in RFC2617 (HTTP Authentication: Basic and Digest Access Authentication). The API uses the standard HTTP status codes, but uses JSON to encode
+in <a href="https://tools.ietf.org/html/rfc2617">RFC2617</a> (HTTP Authentication: Basic and Digest Access Authentication). The API uses the standard HTTP status codes, but uses JSON to encode
 more information in the response than is possible within the RFC specifications.
 
 ##Logout
