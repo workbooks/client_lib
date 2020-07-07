@@ -224,7 +224,7 @@ _Write log records_
 
 This is a simple wrapper around `Logger`.
 
-The `log()` method can be called with up to four parameters. All but the first are optional. The first parameter is a string to label the log record. The second parameter is data (e.g. an array, string or other data structure) which is dumped. The third parameter is a log level; log levels include `:error`, `:warning`, `:notice`, `:info` and `:debug` (the default).
+The `log()` method can be called with up to four parameters. All but the first are optional. The first parameter is a string to label the log record. The second parameter is data (e.g. an array, string or other data structure) which is dumped. The third parameter is a log level; log levels include `:error`, `:warning`, `:notice`, `:info` and `:debug` (the default). The fourth is the size limit for how much will be logged.
 
 Examples:
 <pre><code>
@@ -232,6 +232,7 @@ Examples:
     workbooks.log("Invoked", [params, form_fields], :info)
     workbooks.log('Fetched a data item', response['data'])
     workbooks.log('Bad response for non-existent item', [status, response], :error)
+    workbooks.log('Bad response for non-existent item', [status, response], :error, 99999)
 </code></pre>
 
 ## Further Information
