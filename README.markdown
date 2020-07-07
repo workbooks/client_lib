@@ -251,8 +251,6 @@ you will write your API client using cURL, but if you wanted to, you could! Some
 * `-v` Verbose - shows you the request headers as well as the response. Often you will use this instead of `-i`.
 * `-b cookiejar` Take cookies from cookiejar and include them in the request to the server. Useful when you have an established session.
 * `-d tag=value` Specifies a piece of data to be sent in a POST or PUT request without encoding - it is up to you to URL-encode the tag and or the value as necessary. You may use `-d` several times.
-* `--data-urlencode tag=value` Specifies a piece of data to be sent in a POST or PUT request with encoding. We recommend that you use this option because it correctly encodes that values, although the examples in this document use `-d` for brevity. This option is also more flexible, enabling direct upload from a file by specifying a filename
-  - see the cURL manual for details.
 * `-X method` Cause a specific method to be passed to the server - typically method is DELETE, POST or PUT.
 * `-A clientname` Specify a user-agent string to identify this client to the server.
 * `-H 'Expect:'` Turn off the Expect header that cURL automatically adds.  This will stop the service occasionally sending a `100 Continue` response when you are uploading files.
@@ -261,7 +259,7 @@ Note that cURL automatically encodes parameters and adds the required `Content-T
 
 Windows users: please be careful with quote marks. Avoid smart quotes and use "double quotation marks" instead.
 
-#Authentication: Sessions, Login and Logout
+# Authentication: Sessions, Login and Logout
 If your client is hosted within the Workbooks Process Engine then sessions are automatically established for you by the PHP code in `workbooks_api.php` and there is no need to explicitly handle authentication. The Process Engine uses the APIs documented below to implement this but it is transparent to the user.
 
 The Workbooks API is normally session-based. Most uses of the API require you to first establish a session using /login. Sessions timeout after
@@ -389,7 +387,7 @@ over time so please handle Codes and Failure Reasons which are undocumented as y
   are required to permit you to login from this [device/browser]. Workbooks has sent you an activation email; please click on the activation
   link in that email to allow login to succeed next time."
 
-Note: Workbooks API adheres to RFC2616 (Hypertext Transfer Protocol HTTP/1.1) with the exception of the WWW-Authenticate header as documented
+Note: Workbooks API adheres to <a href="https://tools.ietf.org/html/rfc2616">RFC2616</a> (Hypertext Transfer Protocol HTTP/1.1) with the exception of the WWW-Authenticate header as documented
 in <a href="https://tools.ietf.org/html/rfc2617">RFC2617</a> (HTTP Authentication: Basic and Digest Access Authentication). The API uses the standard HTTP status codes, but uses JSON to encode
 more information in the response than is possible within the RFC specifications.
 
@@ -628,12 +626,12 @@ values 0 to represent false or 1 to represent true.
 
 An example filter to filter all names that start with 'James': `_ff[]=name&_ft[]=bg&_fc[]=James`
         
-Further limiting the filter to employer 'IBM': `_ff[]=name&_ft[]=bg&_fc[]=James&_ff[]=employer[name]&_fc[]=ct&_fc[]=IBM`
+Further limiting the filter to employer 'Workbooks': `_ff[]=name&_ft[]=bg&_fc[]=James&_ff[]=employer[name]&_fc[]=ct&_fc[]=Workbooks`
 
 As you can see above since arrays of parameters are being passed it is important to specify them grouped sensibly together.
 
-Now look for the set of records with names starting with "James" plus those with employer's names equal to "IBM":
-`_ff[]=name&_ft[]=bg&_fc[]=James&_ff[]=employer[name]&_fc[]=eq&_fc[]=IBM&_fm=or`
+Now look for the set of records with names starting with "James" plus those with employer's names equal to "Workbooks":
+`_ff[]=name&_ft[]=bg&_fc[]=James&_ff[]=employer[name]&_fc[]=eq&_fc[]=Workbooks&_fm=or`
 
 For example:
 
@@ -985,7 +983,7 @@ above) it is empty.
 #### Example: Creating an Organisation
 
 <pre><code>
-curl -i -g -s --insecure \
+curl -i -g -s \
      -b '/tmp/cookiejar' \
      -X 'PUT' \
      -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
@@ -1073,7 +1071,7 @@ Content-Type: application/json; charset=utf-8
 #### Example: Modifying the currency of an organisation
 
 <pre><code>
-curl -i -g -s --insecure \
+curl -i -g -s \
      -b '/tmp/cookiejar' \
      -X 'PUT' \
      -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
@@ -1356,7 +1354,7 @@ We will be able to help you much more effectively if you can give us a clear con
 ## Document Revision History
 
 | Date       | Description |
-| ---:       | ----------- |
+| ----       | ----------- |
 | 01/12/2009 | Initial version, including support for Sessions, retrieving and modifying Contacts (People and Organisations) and retrieving Picklists. |
 | 04/07/2010 | Updated cURL parameter information, and added the _application_name parameter to the login request. |
 | 28/07/2010 | Added api_version to the login response, and updated the metadata information on associations and polymorphism. |
