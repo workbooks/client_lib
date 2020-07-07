@@ -165,7 +165,7 @@ another user has modified or deleted it. An API client must be designed to consi
 * Another user may modify a record that your API client also wants to modify. As a result, the `lock_version` will have been incremented and your client's change will be rejected with
   a failure message: "This record cannot be saved since it has already been updated elsewhere." To continue processing your client must reload the record to get the latest data and
   `lock_version` values before applying the change again.
-*	Another user may delete a record. If your API client tries to modify the record it will fail because the record is no longer accessible.
+*   Another user may delete a record. If your API client tries to modify the record it will fail because the record is no longer accessible.
 
 * Another user may change the permissions on a record. Your API client will be unable to access the record, just as if it had been deleted.
 
@@ -273,45 +273,45 @@ The options available to authenticate are:
 
 * Preferred: pass in an api_key to create a session using the login API.
 * Use the login API using a username and password.
-*	Pass in an api_key parameter without first establishing a session.  If sessions are not used then each API call incurs *significant* additional overhead in order to establish a context in which the request can be run. 
+*   Pass in an api_key parameter without first establishing a session.  If sessions are not used then each API call incurs *significant* additional overhead in order to establish a context in which the request can be run. 
 
 Users can create API Keys within the Workbooks Desktop; separate API Keys are normally created for each client a user wishes to access Workbooks on their behalf. API Keys grant access to a specific database.
 
-##Login
+## Login
 It is good practice to clearly indicate the nature of your API client during login by sending a user- agent string (in cURL use the `-A` option). If you include the string `gzip` somewhere in the user-agent string then gzip compression will be enabled for the session (note that using cURL you will likely also need `--compressed`).
 
 Using cURL to the login URL with an API Key:
 
 <pre><code>
-    curl -i -g -s --insecure \
-         -c '/tmp/cookiejar' \
-         -A 'XYZ plugin/1.2.3 (gzip)' \
-         --compressed \
-         -X 'POST' \
-         -d 'api_key=12345-12345-12345-12345-12345-12345-12345-12345' \
-         -d 'client=api' \
-         -d 'api_version=1' \
-         -d 'json=pretty' \
-         https://secure.workbooks.com/login.api 2>&1
+curl -i -g -s \
+     -c '/tmp/cookiejar' \
+     -A 'XYZ plugin/1.2.3 (gzip)' \
+     --compressed \
+     -X 'POST' \
+     -d 'api_key=12345-12345-12345-12345-12345-12345-12345-12345' \
+     -d 'client=api' \
+     -d 'api_version=1' \
+     -d 'json=pretty' \
+     https://secure.workbooks.com/login.api
 
-    HTTP/1.1 200 OK
-    Date: Sat, 12 Dec 2009 07:08:19 GMT
-    Server: Apache
-    ETag: "57482a31ee12cdda121f3a8ab4837b3b" 
-    Cache-Control: private, max-age=0, must-revalidate
-    Set-Cookie: Workbooks-Session=159376d01524f2870e77ecc5f6c2d4c3; path=/
-    Status: 200 OK
-    Cache-Control: no-cache, no-store, must-revalidate
-    Expires: Fri, 30 Oct 1998 14:19:41 GMT
-    Vary: Accept-Encoding
-    Content-Encoding: gzip
-    Content-Length: 186
-    Content-Type: application/json; charset=utf-8
+HTTP/1.1 200 OK
+Date: Sat, 12 Dec 2009 07:08:19 GMT
+Server: Apache
+ETag: "57482a31ee12cdda121f3a8ab4837b3b" 
+Cache-Control: private, max-age=0, must-revalidate
+Set-Cookie: Workbooks-Session=159376d01524f2870e77ecc5f6c2d4c3; path=/
+Status: 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Expires: Fri, 30 Oct 1998 14:19:41 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 186
+Content-Type: application/json; charset=utf-8
 
-    {"database_name": "System Test", "logical_database_id": 3, default_database_id: 3, "user_id": 2, "version": "Development (build 6009)",
-    "api_version": 1, "timezone": "London", "databases": [{"name": "System Test", "id": 3, "created_at": "Mon Jan 05 14:30:11 UTC 2009"}],
-    "authenticity_token": "dd2f9393d7739b0cb1f4be470abd08a2a7276473", "person_name": "System Test", "login_name": "system_test@workbooks.com",
-    "my_queues": {"Private::Crm::PersonQueue": 3, ...}, "database_instance_id": 123122, "session_id": "159376d01524f2870e77ecc5f6c2d4c3"}
+{"database_name": "System Test", "logical_database_id": 3, default_database_id: 3, "user_id": 2, "version": "Development (build 6009)",
+"api_version": 1, "timezone": "London", "databases": [{"name": "System Test", "id": 3, "created_at": "Mon Jan 05 14:30:11 UTC 2009"}],
+"authenticity_token": "dd2f9393d7739b0cb1f4be470abd08a2a7276473", "person_name": "System Test", "login_name": "system_test@workbooks.com",
+"my_queues": {"Private::Crm::PersonQueue": 3, ...}, "database_instance_id": 123122, "session_id": "159376d01524f2870e77ecc5f6c2d4c3"}
 </code></pre>
     
 Note that in common with most of its other responses, Workbooks sends lots of headers instructing the client to not cache the response. The
@@ -393,14 +393,14 @@ Note: Workbooks API adheres to RFC2616 (Hypertext Transfer Protocol HTTP/1.1) wi
 in <a href="https://tools.ietf.org/html/rfc2617">RFC2617</a> (HTTP Authentication: Basic and Digest Access Authentication). The API uses the standard HTTP status codes, but uses JSON to encode
 more information in the response than is possible within the RFC specifications.
 
-##Logout
+## Logout
 
 A logout request will normally return HTTP response code 302 (redirect) together with a `Location:` header; the HTML response can be ignored.
 
 The same response code is received when you try to use an invalid session-ID with another request; you must then successfully login again to
 continue.
 
-##Reconnecting Sessions
+## Reconnecting Sessions
 
 A successful session-based login returns a `session_id`, both as a cookie and within the main JSON response. Clients using Ajax have no access
 to cookies so returning the ID in the JSON response allows API clients to discover the `session_id` which they can store (e.g. in HTML5
@@ -410,41 +410,38 @@ client-side storage). If the client attempts a login providing the username prov
 Sessions expire on the service for various reasons in which case the code `401 no_session_found` is returned. An example:
 
 <pre><code>
-    rm -f /tmp/cookiejar
+curl -i -g -s \
+     -c '/tmp/cookiejar' \
+     -A 'XYZ plugin/1.2.3 (gzip)' \
+     --compressed \
+     -X 'POST' \
+     -d 'username=system_test@workbooks.com' \
+     -d 'session_id=134a657bd27d80fdf38c38ea025a0c8f' \
+     -d 'client=api' \
+     -d 'api_version=1' \
+     -d 'json=pretty' \
+     -d 'logical_database_id=6' \
+     https://secure.workbooks.com/login.api
 
-    curl -i -g -s --insecure \
-         -c '/tmp/cookiejar' \
-         -A 'XYZ plugin/1.2.3 (gzip)' \
-         --compressed \
-         -X 'POST' \
-         -d 'username=system_test@workbooks.com' \
-         -d 'session_id=134a657bd27d80fdf38c38ea025a0c8f' \
-         -d 'client=api' \
-         -d 'api_version=1' \
-         -d 'json=pretty' \
-         -d 'logical_database_id=6' \
-         https://sandbox/login.api 2>&1
+HTTP/1.1 200 OK
+Date: Tue, 17 May 2011 18:49:36 GMT
+Server: Apache
+ETag: "280c60eb57e102f5ddd8aae3d1256b35"
+Cache-Control: private, max-age=0, must-revalidate
+Set-Cookie: Workbooks-Session=f4543f2730f9cef940116d7b80fa57a2; path=/; 
+secure; HttpOnly
+Status: 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Expires: Fri, 30 Oct 1998 14:19:41 GMT
+Vary: Accept-Encoding
+Content-Encoding: gzip
+Content-Length: 510
+Content-Type: application/json; charset=utf-8
 
-    HTTP/1.1 200 OK
-    Date: Tue, 17 May 2011 18:49:36 GMT
-    Server: Apache
-    ETag: "280c60eb57e102f5ddd8aae3d1256b35"
-    Cache-Control: private, max-age=0, must-revalidate
-    Set-Cookie: Workbooks-Session=f4543f2730f9cef940116d7b80fa57a2; path=/; 
-    secure; HttpOnly
-    Status: 200 OK
-    Cache-Control: no-cache, no-store, must-revalidate
-    Expires: Fri, 30 Oct 1998 14:19:41 GMT
-    Vary: Accept-Encoding
-    Content-Encoding: gzip
-    Content-Length: 510
-    Content-Type: application/json; charset=utf-8
-
-    {"session_id": "f4543f2730f9cef940116d7b80fa57a2", ...
+{"session_id": "f4543f2730f9cef940116d7b80fa57a2", ...
 </code></pre>
          
-  Note that a successful 'reconnection' will result in a new session being created with a 
-  new `session_id`, which the client should now store in place of the original one.
+Note that a successful 'reconnection' will result in a new session being created with a new `session_id`, which the client should now store in place of the original one.
   
 # Retrieving Objects
 
@@ -465,47 +462,47 @@ the list on and the direction of the sort which can be `ASC` or `DESC`); the res
 of records matching the request:
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'GET' \
-             -d '_dc=12577504357462' \
-             -d '_start=0' \
-             -d '_limit=1' \
-             -d '_sort=id' \
-             -d '_dir=ASC' \
-             https://secure.workbooks.com/activity/tasks.api 2>&1
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'GET' \
+     -d '_dc=12577504357462' \
+     -d '_start=0' \
+     -d '_limit=1' \
+     -d '_sort=id' \
+     -d '_dir=ASC' \
+     https://secure.workbooks.com/activity/tasks.api
 
-        HTTP/1.1 200 OK
-        Connection: close
-        Date: Mon, 12 Jul 2010 15:44:37 GMT
-        Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
-        Status: 200 OK
-        ETag: "aed95a987facc6ccfa3c4312a8a0fe16"
-        X-Runtime: 148ms
-        Content-Type: application/json; charset=utf-8
-        Content-Length: 1918
-        Server: Mongrel 1.1.3
-        Cache-Control: private, max-age=0, must-revalidate
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 12 Jul 2010 15:44:37 GMT
+Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
+Status: 200 OK
+ETag: "aed95a987facc6ccfa3c4312a8a0fe16"
+X-Runtime: 148ms
+Content-Type: application/json; charset=utf-8
+Content-Length: 1918
+Server: Mongrel 1.1.3
+Cache-Control: private, max-age=0, must-revalidate
 
-        {
-          "data" : [{
-            "_can_chaccess" : true,
-            "_can_chown" : true,
-            "_can_delete" : true,
-            "_can_modify" : true,
-            "_can_read" : true,
-            "activity_priority" : "High",
-            "activity_status" : "New",
-            "activity_type" : "Phone call",
-            "assigned_to" : 1,
-            ...
-            "watched" : false
-           	 }],
-          "flash" : "",
-          "success" : true,
-          "total" : 2,
-          "updates" : {}
-        }
+{
+  "data" : [{
+    "_can_chaccess" : true,
+    "_can_chown" : true,
+    "_can_delete" : true,
+    "_can_modify" : true,
+    "_can_read" : true,
+    "activity_priority" : "High",
+    "activity_status" : "New",
+    "activity_type" : "Phone call",
+    "assigned_to" : 1,
+    ...
+    "watched" : false
+   }],
+  "flash" : "",
+  "success" : true,
+  "total" : 2,
+  "updates" : {}
+}
 </code></pre>
 
 ## Common Attributes
@@ -546,17 +543,17 @@ As shown in earlier examples, the `_sort` and `_dir` parameters can be used to s
 For example:
 
 <pre><code>
-       curl -i -g -s --insecure \
-              -b '/tmp/cookiejar' \
-              -X 'GET' \
-              -d '_dc=12577504357462' \
-              -d '_start=0' \
-              -d '_limit=10' \
-              -d '_sort[]=due_date' \
-              -d '_dir[]=DESC' \
-              -d '_sort[]=id' \
-              -d '_dir[]=ASC' \
-              https://secure.workbooks.com/activity/tasks.api 2>&1
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'GET' \
+     -d '_dc=12577504357462' \
+     -d '_start=0' \
+     -d '_limit=10' \
+     -d '_sort[]=due_date' \
+     -d '_dir[]=DESC' \
+     -d '_sort[]=id' \
+     -d '_dir[]=ASC' \
+     https://secure.workbooks.com/activity/tasks.api
 </code></pre>
 
 ## Filtering
@@ -641,44 +638,44 @@ Now look for the set of records with names starting with "James" plus those with
 For example:
 
 <pre><code>
-          curl -i -g -s --insecure \
-             -b '/tmp/cookiejar'  \
-             -X 'GET' \
-             -d '_dc=12577549475076' \
-             -d '_ff[]=id' \
-             -d '_ft[]=eq' \
-             -d '_fc[]=1' \
-             -d '_ff[]=id' \
-             -d '_ft[]=eq' \
-             -d '_fc[]=2' \
-             -d '_fm=or' \
-             -d '_sort=id' \
-             -d '_dir=ASC' \
-             https://secure.workbooks.com/activity/tasks.api
+curl -i -g -s \
+     -b '/tmp/cookiejar'  \
+     -X 'GET' \
+     -d '_dc=12577549475076' \
+     -d '_ff[]=id' \
+     -d '_ft[]=eq' \
+     -d '_fc[]=1' \
+     -d '_ff[]=id' \
+     -d '_ft[]=eq' \
+     -d '_fc[]=2' \
+     -d '_fm=or' \
+     -d '_sort=id' \
+     -d '_dir=ASC' \
+     https://secure.workbooks.com/activity/tasks.api
 </code></pre>
         
 Here is an example with a complex boolean logic filter specified in the _fm parameter:
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'GET' \
-             -d '_dc=12612703759801' \
-             -d '_start=0' \
-             -d '_limit=20' \
-             -d '_sort=id' \
-             -d '_dir=ASC' \
-             -d '_ff[]=main_location[email]' \
-             -d '_ft[]=bg' \
-             -d '_fc[]=an' \
-             -d '_ff[]=refcode' \
-             -d '_ft[]=ct' \
-             -d '_fc[]=g' \
-             -d '_ff[]=person_last_name' \
-             -d '_ft[]=bg' \
-             -d '_fc[]=go' \
-             -d '_fm=(1 OR 2) AND 3' \
-             http://secure.workbooks.com/crm/people.api
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'GET' \
+     -d '_dc=12612703759801' \
+     -d '_start=0' \
+     -d '_limit=20' \
+     -d '_sort=id' \
+     -d '_dir=ASC' \
+     -d '_ff[]=main_location[email]' \
+     -d '_ft[]=bg' \
+     -d '_fc[]=an' \
+     -d '_ff[]=refcode' \
+     -d '_ft[]=ct' \
+     -d '_fc[]=g' \
+     -d '_ff[]=person_last_name' \
+     -d '_ft[]=bg' \
+     -d '_fc[]=go' \
+     -d '_fm=(1 OR 2) AND 3' \
+     http://secure.workbooks.com/crm/people.api
 </code></pre>
 
 This requests "People with (email address beginning with 'an' OR refcode containing 'g') AND last name beginning with 'go'". Instead of
@@ -688,19 +685,19 @@ arrays where 1 (not zero) is the first element in the arrays.
 Here is an example to retrieve records deleted since a date and time:
 
 <pre><code>
-            curl -i -g -s --insecure \
-                         -b '/tmp/cookiejar' \
-                         -X 'GET' \
-                         -d '_dc=12577549475076' \
-                         -d '_ff[]=is_deleted' \
-                         -d '_ft[]=eq' \
-                         -d '_fc[]=1' \
-                         -d '_ff[]=updated_at' \
-                         -d '_ft[]=gt' \
-                         -d '_fc[]=Fri Sept 7 14:00:00 UTC 2012' \
-                         -d '_sort=id' \
-                         -d '_dir=ASC' \
-                         http://secure.workbooks.com/crm/people.api
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'GET' \
+     -d '_dc=12577549475076' \
+     -d '_ff[]=is_deleted' \
+     -d '_ft[]=eq' \
+     -d '_fc[]=1' \
+     -d '_ff[]=updated_at' \
+     -d '_ft[]=gt' \
+     -d '_fc[]=Fri Sept 7 14:00:00 UTC 2012' \
+     -d '_sort=id' \
+     -d '_dir=ASC' \
+     http://secure.workbooks.com/crm/people.api
 </code></pre>
 
 ### Selecting Columns
@@ -710,18 +707,18 @@ the complete set of available columns; some columns can contain a lot of data su
 of columns it can clutter logs and make debugging more difficult. For example
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'GET' \
-             -d '_dc=12577513410174' \
-             -d '_start=0' \
-             -d '_limit=1' \
-             -d '_sort=id' \
-             -d '_dir=ASC' \
-             -d '_select_columns[]=lock_version' \
-             -d '_select_columns[]=name' \
-             -d '_select_columns[]=updated_by_user[person_name]' \
-             https://secure.workbooks.com/activity/activities.api
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'GET' \
+     -d '_dc=12577513410174' \
+     -d '_start=0' \
+     -d '_limit=1' \
+     -d '_sort=id' \
+     -d '_dir=ASC' \
+     -d '_select_columns[]=lock_version' \
+     -d '_select_columns[]=name' \
+     -d '_select_columns[]=updated_by_user[person_name]' \
+     https://secure.workbooks.com/activity/activities.api
 </code></pre>
 
 ### Picklists
@@ -770,9 +767,9 @@ doesn't support PUT, see section HTTP Methods, Certificates and URLs above for a
 The request begins like this:
 
 <pre><code>
-        curl -i -b cookiejar -g \
-               -X PUT \
-               -d _authenticity_token=0240837db6a9a2dac47c3419a27c79b22be9e597
+curl -i -b cookiejar -g \
+     -X PUT \
+     -d _authenticity_token=0240837db6a9a2dac47c3419a27c79b22be9e597
 </code></pre>
 
 when updating or deleting objects, include filters to define the set of objects to be acted upon, for example:
@@ -780,40 +777,36 @@ when updating or deleting objects, include filters to define the set of objects 
 To select all the records that contain the word, Workbooks in a 'name' field:
 
 <pre><code>
-			   -d _ff[]=name
-			   -d _ft[]=ct
-			   -d _fc[]=Workbooks
+     -d _ff[]=name
+     -d _ft[]=ct
+     -d _fc[]=Workbooks
 </code></pre>
 
 or to only select a single object by id:
 
 <pre><code>
-			   -d _ff[]=id
-			   -d _ft[]=eq
-			   -d _fc[]=10123
+     -d _ff[]=id
+     -d _ft[]=eq
+     -d _fc[]=10123
 </code></pre>
 
 or to select several objects by `id`: (note the use of the `_fm[]=or` parameter to cause the filter conditions to be or'd together instead
 of the default 'and')
 
 <pre><code>
-			   -d _fm[]=or
+     -d _fm[]=or
 
-			   -d _ff[]=id
-			   -d _ft[]=eq
-			   -d _fc[]=10123
-</code></pre>
+     -d _ff[]=id
+     -d _ft[]=eq
+     -d _fc[]=10123
 
-<pre><code>
-			   -d _ff[]=id
-			   -d _ft[]=eq
-			   -d _fc[]=10124
-</code></pre>
+     -d _ff[]=id
+     -d _ft[]=eq
+     -d _fc[]=10124
 
-<pre><code>
-			   -d _ff[]=id
-			   -d _ft[]=eq
-			   -d _fc[]=10125
+     -d _ff[]=id
+     -d _ft[]=eq
+     -d _fc[]=10125
 </code></pre>
         
 and ends specifying the appropriate URL, for example @https://secure.workbooks.com/activity/tasks.api@.
@@ -840,19 +833,19 @@ you must supply two `name[]` parameters and two `age[]` parameters, one for each
 set it to `:no_value:`.
 
 <pre><code>
-			   -d __method[]=PUT \
-			   -d id[]=1234 \
-			   -d lock_version[]=2 \
-			   -d name[]=John \
-			   -d age[]=:no_value: \
+     -d __method[]=PUT \
+     -d id[]=1234 \
+     -d lock_version[]=2 \
+     -d name[]=John \
+     -d age[]=:no_value: \
 </code></pre>
 
 <pre><code>
-			   -d __method[]=PUT \
-			   -d id[]=4567 \
-			   -d lock_version[]=0 \
-			   -d name[]=:no_value: \
-			   -d age[]=26 \
+     -d __method[]=PUT \
+     -d id[]=4567 \
+     -d lock_version[]=0 \
+     -d name[]=:no_value: \
+     -d age[]=26 \
 </code></pre>
 
 You must specify filters that will load the records that your request wants to modify. In the example above you would need to include
@@ -864,16 +857,16 @@ To modify a record you need to send a request marked with `__method[]=PUT` and s
 a set of field values:
 
 <pre><code>
-               -d __method[]=PUT \
-               -d id[]=1 \
-               -d lock_version[]=5 \
-               -d name[]=James%20Kay \
+     -d __method[]=PUT \
+     -d id[]=1 \
+     -d lock_version[]=5 \
+     -d name[]=James%20Kay \
 </code></pre>
 
 <pre><code>
-               -d _ff[]=id \
-               -d _ft[]=eq \
-               -d _fc[]=1 \
+     -d _ff[]=id \
+     -d _ft[]=eq \
+     -d _fc[]=1 \
 </code></pre>
         
 For this to be successful your session needs the appropriate "update" capability, and you must also have permission to update the row. It
@@ -885,18 +878,18 @@ To create a record you need to send a request marked with `__method[]=POST` and 
 to put in the record:
 
 <pre><code>
-               -d __method[]=POST \
-               -d id[]=0 \
-               -d lock_version[]=0 \
-               -d name[]=New%20Record \
-               -d size[]=400 \
-               -d state[]=open \
+     -d __method[]=POST \
+     -d id[]=0 \
+     -d lock_version[]=0 \
+     -d name[]=New%20Record \
+     -d size[]=400 \
+     -d state[]=open \
 </code></pre>
 
 <pre><code>
-               -d _ff[]=id \
-               -d _ft[]=eq \
-               -d _fc[]=0 \
+     -d _ff[]=id \
+     -d _ft[]=eq \
+     -d _fc[]=0 \
 </code></pre>
 
 For this to be successful your session needs the appropriate "create" capability.
@@ -907,15 +900,15 @@ To delete a record you need to send a request marked with `__method[]=DELETE` an
 be deleted:
 
 <pre><code>
-               -d method[]=DELETE \
-               -d id[]=1 \
-               -d lock_version[]=5 \
+     -d method[]=DELETE \
+     -d id[]=1 \
+     -d lock_version[]=5 \
 </code></pre>
 
 <pre><code>
-               -d _ff[]=id \
-               -d _ft[]=eq \
-               -d _fc[]=1 \
+     -d _ff[]=id \
+     -d _ft[]=eq \
+     -d _fc[]=1 \
 </code></pre>
 
 For this to be successful your session needs the appropriate "delete" capability, and you must also have permission to delete the row. It
@@ -940,49 +933,49 @@ Alongside the `affected_objects` Array of Hashes, there is another `affected_obj
 #### Example: Updating a Task
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'PUT' \
-             -d '_authenticity_token=19453a4d3fee1c05970b8690088242208b6fe801' \
-             -d '_ff[]=id' \
-             -d '_ft[]=eq' \
-             -d '_fc[]=1' \
-             -d '__method[]=PUT' \
-             -d 'id[]=1' \
-             -d 'lock_version[]=1' \
-             -d 'name[]=Call_Testrite_now' \
-             https://secure.workbooks.com/activity/tasks.api 2>&1 \
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'PUT' \
+     -d '_authenticity_token=19453a4d3fee1c05970b8690088242208b6fe801' \
+     -d '_ff[]=id' \
+     -d '_ft[]=eq' \
+     -d '_fc[]=1' \
+     -d '__method[]=PUT' \
+     -d 'id[]=1' \
+     -d 'lock_version[]=1' \
+     -d 'name[]=Call_Testrite_now' \
+     https://secure.workbooks.com/activity/tasks.api
 
-        HTTP/1.1 200 OK
-        Connection: close
-        Date: Mon, 12 Jul 2010 16:03:09 GMT
-        Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
-        Status: 200 OK
-        ETag: "a6a1e9d748ba38a9c799eaa96a451c5b"
-        X-Runtime: 882ms
-        Content-Type: application/json; charset=utf-8
-        Content-Length: 504
-        Server: Mongrel 1.1.3
-        Cache-Control: private, max-age=0, must-revalidate
-    	
-        {
-            "affected_object_information" : [{
-                    "errors" : {},
-                    "success" : true,
-                    "warnings" : {}
-                }],
-            "affected_objects" : [{
-                    "descriptor" : "Call_Testrite_now (Phone call)",
-                    "id" : 1,
-                    "lock_version" : 2,
-                    "name" : "Call_Testrite_now",
-                    "updated_at" : "Mon Jul 12 16:03:09 UTC 2010",
-                    "updated_by" : 2
-                }],
-            "flash" : "Updated successfully",
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 12 Jul 2010 16:03:09 GMT
+Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
+Status: 200 OK
+ETag: "a6a1e9d748ba38a9c799eaa96a451c5b"
+X-Runtime: 882ms
+Content-Type: application/json; charset=utf-8
+Content-Length: 504
+Server: Mongrel 1.1.3
+Cache-Control: private, max-age=0, must-revalidate
+
+{
+    "affected_object_information" : [{
+            "errors" : {},
             "success" : true,
-            "updates" : {}
-        }        
+            "warnings" : {}
+        }],
+    "affected_objects" : [{
+            "descriptor" : "Call_Testrite_now (Phone call)",
+            "id" : 1,
+            "lock_version" : 2,
+            "name" : "Call_Testrite_now",
+            "updated_at" : "Mon Jul 12 16:03:09 UTC 2010",
+            "updated_by" : 2
+        }],
+    "flash" : "Updated successfully",
+    "success" : true,
+    "updates" : {}
+}        
 </code></pre>
 
 Note that the `affected_objects` hash reports back a number of fields which have changed as a side-effect of the operation. The
@@ -992,48 +985,48 @@ above) it is empty.
 #### Example: Creating an Organisation
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'PUT' \
-             -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
-             -d '__method[]=POST' \
-             -d 'id[]=0' \
-             -d 'lock_version[]=0' \
-             -d 'name[]=New+Organisation' \
-             https://secure.workbooks.com/crm/organisations.api 2>&1 \
+curl -i -g -s --insecure \
+     -b '/tmp/cookiejar' \
+     -X 'PUT' \
+     -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
+     -d '__method[]=POST' \
+     -d 'id[]=0' \
+     -d 'lock_version[]=0' \
+     -d 'name[]=New+Organisation' \
+     https://secure.workbooks.com/crm/organisations.api
 
-        HTTP/1.1 200 OK
-        Date: Mon, 23 Nov 2009 09:35:16 GMT
-        Server: Apache
-        ETag: "80841210880d6b5b6083f6c1a0cda429" 
-        Cache-Control: private, max-age=0, must-revalidate
-        Set-Cookie: Workbooks-Session=973ea27009d2d8e2f360ea6e8913a66b; path=/
-        Content-Length: 667
-        Status: 200 OK
-        Cache-Control: no-cache, no-store, must-revalidate
-        Expires: Fri, 30 Oct 1998 14:19:41 GMT
-        Content-Type: application/json; charset=utf-8
+HTTP/1.1 200 OK
+Date: Mon, 23 Nov 2009 09:35:16 GMT
+Server: Apache
+ETag: "80841210880d6b5b6083f6c1a0cda429" 
+Cache-Control: private, max-age=0, must-revalidate
+Set-Cookie: Workbooks-Session=973ea27009d2d8e2f360ea6e8913a66b; path=/
+Content-Length: 667
+Status: 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Expires: Fri, 30 Oct 1998 14:19:41 GMT
+Content-Type: application/json; charset=utf-8
 
-        {
-            "affected_object_information" : [{}],
-            "affected_objects" : [{
-                    "assigned_to" : 3,
-                    "assigned_to_name" : "System Test",
-                    "created_at" : "Mon Nov 23 09:35:16 UTC 2009",
-                    "created_by" : 2,
-                    "id" : 226,
-                    "lock_version" : 0,
-                    "name" : "New Organisation",
-                    "queue_entry[updated_at]" : "less than a minute ago",
-                    "refcode" : "NEW1",
-                    "type" : "Private::Crm::Organisation",
-                    "updated_at" : "Mon Nov 23 09:35:16 UTC 2009",
-                    "updated_by" : 2
-                }],
-            "flash" : "Updated successfully",
-            "success" : true,
-            "updates" : {}
-        }
+{
+    "affected_object_information" : [{}],
+    "affected_objects" : [{
+            "assigned_to" : 3,
+            "assigned_to_name" : "System Test",
+            "created_at" : "Mon Nov 23 09:35:16 UTC 2009",
+            "created_by" : 2,
+            "id" : 226,
+            "lock_version" : 0,
+            "name" : "New Organisation",
+            "queue_entry[updated_at]" : "less than a minute ago",
+            "refcode" : "NEW1",
+            "type" : "Private::Crm::Organisation",
+            "updated_at" : "Mon Nov 23 09:35:16 UTC 2009",
+            "updated_by" : 2
+        }],
+    "flash" : "Updated successfully",
+    "success" : true,
+    "updates" : {}
+}
 </code></pre>
                 
 #### Example: A failure
@@ -1041,91 +1034,87 @@ above) it is empty.
 This example shows what happens when a uniqueness constraint is violated while creating a new Person:
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'PUT' \
-             -d '_authenticity_token=8c3981bfda37a1a9b28a31ed5120643d0ffab72c' \
-             -d '__method[]=POST' \
-             -d 'id[]=0' \
-             -d 'lock_version[]=0' \
-             -d 'name[]=New+Person' \
-             -d 'refcode[]=DUPLICATE_PERSON_REFCODE' \
-             https://secure.workbooks.com/crm/people.api 2>&1 \
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'PUT' \
+     -d '_authenticity_token=8c3981bfda37a1a9b28a31ed5120643d0ffab72c' \
+     -d '__method[]=POST' \
+     -d 'id[]=0' \
+     -d 'lock_version[]=0' \
+     -d 'name[]=New+Person' \
+     -d 'refcode[]=DUPLICATE_PERSON_REFCODE' \
+     https://secure.workbooks.com/crm/people.api
 
-        HTTP/1.1 200 OK
-        Date: Mon, 23 Nov 2009 09:35:37 GMT
-        Server: Apache
-        ETag: "8545c3a892a6d0eaafc9789012da74b0" 
-        Cache-Control: private, max-age=0, must-revalidate
-        Set-Cookie: Workbooks-Session=91659795feb3a5e4da6eb297c60119c7; path=/
-        Content-Length: 263
-        Status: 200 OK
-        Cache-Control: no-cache, no-store, must-revalidate
-        Expires: Fri, 30 Oct 1998 14:19:41 GMT
-        Content-Type: application/json; charset=utf-8
+HTTP/1.1 200 OK
+Date: Mon, 23 Nov 2009 09:35:37 GMT
+Server: Apache
+ETag: "8545c3a892a6d0eaafc9789012da74b0" 
+Cache-Control: private, max-age=0, must-revalidate
+Set-Cookie: Workbooks-Session=91659795feb3a5e4da6eb297c60119c7; path=/
+Content-Length: 263
+Status: 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Expires: Fri, 30 Oct 1998 14:19:41 GMT
+Content-Type: application/json; charset=utf-8
 
-        {
-            "affected_object_errors" : [{
-                    "refcode" : ["'DUPLICATE_PERSON_REFCODE' is already used"]
-                }],
-            "errors" : {
-                "[]" : {
-                    "refcode" : "'DUPLICATE_PERSON_REFCODE' is already used" 
-                }
-            },
-            "success" : false
-        }      
+{
+  "affected_object_errors" : [{
+      "refcode" : ["'DUPLICATE_PERSON_REFCODE' is already used"]
+  }],
+  "errors" : {
+    "[]" : {
+      "refcode" : "'DUPLICATE_PERSON_REFCODE' is already used" 
+    }
+  },
+  "success" : false
+}      
 </code></pre>
           
 #### Example: Modifying the currency of an organisation
 
 <pre><code>
-        curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'PUT' \
-             -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
-			 -d '_ff[]=id' \
+curl -i -g -s --insecure \
+     -b '/tmp/cookiejar' \
+     -X 'PUT' \
+     -d '_authenticity_token=e6f8360ca3e135f71bfc846305bf52040f6ce0ae' \
+     -d '_ff[]=id' \
+     -d '_ft[]=eq' \
+     -d '_fc[]=1' \
+     -d '__method[]=PUT' \
+     -d 'id[]=1' \
+     -d 'lock_version[]=0' \
+     -d 'currency[]=XXX' \
+     https://secure.workbooks.com/crm/organisations.api
 
+HTTP/1.1 200 OK
+Date: Mon, 23 Nov 2009 09:35:19 GMT
+Server: Apache
+ETag: "f3e34869a58c5bcfd7e1751be776b7e4" 
+Cache-Control: private, max-age=0, must-revalidate
+Set-Cookie: Workbooks-Session=973ea27009d2d8e2f360ea6e8913a66b; path=/
+Content-Length: 606
+Status: 200 OK
+Cache-Control: no-cache, no-store, must-revalidate
+Expires: Fri, 30 Oct 1998 14:19:41 GMT
+Content-Type: application/json; charset=utf-8
 
-		 	-d '_ft[]=eq' \
-			 -d '_fc[]=1' \
-             -d '__method[]=PUT' \
-             -d 'id[]=1' \
-             -d 'lock_version[]=0' \
-             -d 'currency[]=XXX' \
-             https://secure.workbooks.com/crm/organisations.api 2>&1 \
-
-        HTTP/1.1 200 OK
-        Date: Mon, 23 Nov 2009 09:35:19 GMT
-        Server: Apache
-        ETag: "f3e34869a58c5bcfd7e1751be776b7e4" 
-        Cache-Control: private, max-age=0, must-revalidate
-        Set-Cookie: Workbooks-Session=973ea27009d2d8e2f360ea6e8913a66b; path=/
-        Content-Length: 606
-        Status: 200 OK
-        Cache-Control: no-cache, no-store, must-revalidate
-        Expires: Fri, 30 Oct 1998 14:19:41 GMT
-        Content-Type: application/json; charset=utf-8
-
-        {
-            "affected_object_information" : [{
-                    "message" : [{
-                            "body" : "The Home Currency of this Own Organisation has 
-been changed.  Check the Foreign Currencies list as currencies without exchange rates 
-(GBP,EUR,USD) have been removed.",
-                            "title" : "Information" 
-                        }]
-                }],
-            "affected_objects" : [{
-                    "currency" : "XXX",
-                    "id" : 1,
-                    "lock_version" : 1,
-                    "updated_at" : "Mon Nov 23 09:35:19 UTC 2009" 
-                }],
-            "flash" : "Updated successfully",
-            "success" : true,
-            "updates" : {}
-        }
+{
+    "affected_object_information" : [{
+      "message" : [{
+        "body" : "The Home Currency of this Own Organisation has been changed. Check the Foreign Currencies list as currencies without exchange rates (GBP,EUR,USD) have been removed.",
+        "title" : "Information" 
+      }]
+    }],
+    "affected_objects" : [{
+      "currency" : "XXX",
+        "id" : 1,
+        "lock_version" : 1,
+        "updated_at" : "Mon Nov 23 09:35:19 UTC 2009" 
+      }],
+    "flash" : "Updated successfully",
+    "success" : true,
+    "updates" : {}
+}
 </code></pre>
                 
 #### Example: Multiple operations
@@ -1137,127 +1126,125 @@ are just set to empty strings. If a field is to remain unchanged, as might be th
 may be set to `:no_value:`.
 
 <pre><code>
-    curl -i -g -s --insecure \
-             -b '/tmp/cookiejar' \
-             -X 'PUT' \
-             -d '_authenticity_token=19453a4d3fee1c05970b8690088242208b6fe801' \
-			 -d _fm=or \
+curl -i -g -s \
+     -b '/tmp/cookiejar' \
+     -X 'PUT' \
+     -d '_authenticity_token=19453a4d3fee1c05970b8690088242208b6fe801' \
+     -d _fm=or \
+     -d _ff[]=id \
+     -d _ft[]=eq \
+     -d _fc[]=1 \
+     -d _ff[]=id \
+     -d _ft[]=eq \
+     -d _fc[]=2 \
+     -d '__method[]=DELETE' \
+     -d 'activity_priority[]=' \
+     -d 'activity_status[]=' \
+     -d 'activity_type[]=' \
+     -d 'due_date[]=' \
+     -d 'id[]=1' \
+     -d 'lock_version[]=2' \
+     -d 'name[]=' \
+     -d '__method[]=PUT' \
+     -d 'activity_priority[]=High' \
+     -d 'activity_status[]=New' \
+     -d 'activity_type[]=Email' \
+     -d 'due_date[]=:no_value:' \
+     -d 'id[]=2' \
+     -d 'lock_version[]=1' \
+     -d 'name[]=10197' \
+     -d '__method[]=POST' \
+     -d 'id[]=0' \
+     -d 'lock_version[]=0' \
+     -d 'activity_priority[]=High' \
+     -d 'activity_status[]=New' \
+     -d 'activity_type[]=Email' \
+     -d 'due_date[]=22+May+2009' \
+     -d 'name[]=create_10197' \
+     https://secure.workbooks.com/activity/tasks.api
 
-			 -d _ff[]=id \
-			 -d _ft[]=eq \
-			 -d _fc[]=1 \
+HTTP/1.1 200 OK
+Connection: close
+Date: Mon, 12 Jul 2010 16:12:28 GMT
+Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
+Status: 200 OK
+ETag: "9037cb8f8ac16db2c5f9fdc79d7fc063"
+X-Runtime: 741ms
+Content-Type: application/json; charset=utf-8
+Content-Length: 2455
+Server: Mongrel 1.1.3
+Cache-Control: private, max-age=0, must-revalidate
 
-			 -d _ff[]=id \
-			 -d _ft[]=eq \
-			 -d _fc[]=2 \
-             -d '__method[]=DELETE' \
-             -d 'activity_priority[]=' \
-             -d 'activity_status[]=' \
-             -d 'activity_type[]=' \
-             -d 'due_date[]=' \
-             -d 'id[]=1' \
-             -d 'lock_version[]=2' \
-             -d 'name[]=' \
-             -d '__method[]=PUT' \
-             -d 'activity_priority[]=High' \
-             -d 'activity_status[]=New' \
-             -d 'activity_type[]=Email' \
-             -d 'due_date[]=:no_value:' \
-             -d 'id[]=2' \
-             -d 'lock_version[]=1' \
-             -d 'name[]=10197' \
-             -d '__method[]=POST' \
-             -d 'id[]=0' \
-             -d 'lock_version[]=0' \
-             -d 'activity_priority[]=High' \
-             -d 'activity_status[]=New' \
-             -d 'activity_type[]=Email' \
-             -d 'due_date[]=22+May+2009' \
-             -d 'name[]=create_10197' \
-             https://secure.workbooks.com/activity/tasks.api 2>&1 \
-
-        HTTP/1.1 200 OK
-        Connection: close
-        Date: Mon, 12 Jul 2010 16:12:28 GMT
-        Set-Cookie: Workbooks-Session=de2571b2d9bd35f7746c0cdbcc543fdd; path=/
-        Status: 200 OK
-        ETag: "9037cb8f8ac16db2c5f9fdc79d7fc063"
-        X-Runtime: 741ms
-        Content-Type: application/json; charset=utf-8
-        Content-Length: 2455
-        Server: Mongrel 1.1.3
-        Cache-Control: private, max-age=0, must-revalidate
-    	
-        {
-            "affected_object_information" : [{
-                    "errors" : {},
-                    "success" : true,
-                    "warnings" : {}
-                }, {
-                    "errors" : {},
-                    "success" : true,
-                    "warnings" : {}
-                }, {
-                    "errors" : {},
-                    "success" : true,
-                    "warnings" : {}
-                }],
-            "affected_objects" : [{
-                    "id" : 1,
-                    "lock_version" : 2
-                }, {
-                    "descriptor" : "10197 (Email)",
-                    "id" : 2,
-                    "lock_version" : 2,
-                    "name" : "10197",
-                    "updated_at" : "Mon Jul 12 16:12:28 UTC 2010",
-                    "updated_by" : 2
-                }, {
-                    "_can_chaccess" : true,
-                    "_can_chown" : true,
-                    "_can_delete" : true,
-                    "_can_modify" : true,
-                    "_can_read" : true,
-                    "activity_priority" : "High",
-                    "activity_status" : "New",
-                    "activity_type" : "Email",
-                    "assigned_to" : 3,
-                    "completed_date" : null,
-                    "created_at" : "Mon Jul 12 16:12:28 UTC 2010",
-                    "created_by" : 2,
-                    "created_by_user[person_name]" : "System Test",
-                    "created_through" : "XYZ",
-                    "created_through_reference" : "",
-                    "description" : "",
-                    "descriptor" : "create_10197 (Email)",
-                    "due_date" : "22 May 2009",
-                    "id" : 4,
-                    "imported" : false,
-                    "lock_version" : 0,
-                    "name" : "create_10197",
-                    "owner[person_name]" : "System Test",
-                    "owner_id" : 2,
-                    "primary_contact[main_location[email]]" : "",
-                    "primary_contact[main_location[mobile]]" : "",
-                    "primary_contact[main_location[telephone]]" : "",
-                    "primary_contact[name]" : "",
-                    "primary_contact_id" : null,
-                    "primary_contact_type" : null,
-                    "queue[name]" : "System Test",
-                    "queue_entry[updated_at]" : "Mon Jul 12 16:12:28 UTC 2010",
-                    "reminder_datetime" : "Thu May 21 09:00:00 UTC 2009",
-                    "reminder_enabled" : false,
-                    "reminder_minutes" : 15,
-                    "type" : "Private::Activity::Task",
-                    "updated_at" : "Mon Jul 12 16:12:28 UTC 2010",
-                    "updated_by" : 2,
-                    "updated_by_user[person_name]" : "System Test",
-                    "watched" : false
-                }],
-            "flash" : "Updated successfully",
+{
+    "affected_object_information" : [{
+            "errors" : {},
             "success" : true,
-            "updates" : {}
-        }
+            "warnings" : {}
+        }, {
+            "errors" : {},
+            "success" : true,
+            "warnings" : {}
+        }, {
+            "errors" : {},
+            "success" : true,
+            "warnings" : {}
+        }],
+    "affected_objects" : [{
+            "id" : 1,
+            "lock_version" : 2
+        }, {
+            "descriptor" : "10197 (Email)",
+            "id" : 2,
+            "lock_version" : 2,
+            "name" : "10197",
+            "updated_at" : "Mon Jul 12 16:12:28 UTC 2010",
+            "updated_by" : 2
+        }, {
+            "_can_chaccess" : true,
+            "_can_chown" : true,
+            "_can_delete" : true,
+            "_can_modify" : true,
+            "_can_read" : true,
+            "activity_priority" : "High",
+            "activity_status" : "New",
+            "activity_type" : "Email",
+            "assigned_to" : 3,
+            "completed_date" : null,
+            "created_at" : "Mon Jul 12 16:12:28 UTC 2010",
+            "created_by" : 2,
+            "created_by_user[person_name]" : "System Test",
+            "created_through" : "XYZ",
+            "created_through_reference" : "",
+            "description" : "",
+            "descriptor" : "create_10197 (Email)",
+            "due_date" : "22 May 2009",
+            "id" : 4,
+            "imported" : false,
+            "lock_version" : 0,
+            "name" : "create_10197",
+            "owner[person_name]" : "System Test",
+            "owner_id" : 2,
+            "primary_contact[main_location[email]]" : "",
+            "primary_contact[main_location[mobile]]" : "",
+            "primary_contact[main_location[telephone]]" : "",
+            "primary_contact[name]" : "",
+            "primary_contact_id" : null,
+            "primary_contact_type" : null,
+            "queue[name]" : "System Test",
+            "queue_entry[updated_at]" : "Mon Jul 12 16:12:28 UTC 2010",
+            "reminder_datetime" : "Thu May 21 09:00:00 UTC 2009",
+            "reminder_enabled" : false,
+            "reminder_minutes" : 15,
+            "type" : "Private::Activity::Task",
+            "updated_at" : "Mon Jul 12 16:12:28 UTC 2010",
+            "updated_by" : 2,
+            "updated_by_user[person_name]" : "System Test",
+            "watched" : false
+        }],
+    "flash" : "Updated successfully",
+    "success" : true,
+    "updates" : {}
+}
 </code></pre>
         
 # Metadata
@@ -1359,10 +1346,10 @@ href="https://www.workbooks.com/suggestions" target="_blank">https://www.workboo
 
 Please include source code to demonstrate the issue. In particular you MUST supply:
 
-*	The login name you are using to connect to the service.
-*	The database ID you are accessing.
-*	The exact time at which you last experienced any issue.
-*	An exception reference if one is available.
+*   The login name you are using to connect to the service.
+*   The database ID you are accessing.
+*   The exact time at which you last experienced any issue.
+*   An exception reference if one is available.
 
 We will be able to help you much more effectively if you can give us a clear context for your query.
 
@@ -1398,5 +1385,5 @@ We will be able to help you much more effectively if you can give us a clear con
 | 19/02/2014 | Clarified recent edits. Requested TLS rather than SSL for security reasons. |
 | 28/05/2014 | During login, api_version should now be requested and set to 1. |
 | 30/01/2015 | It is no longer necessary to use the linked_item_association_for_ prefix when using Dynamic Linked Items. |
-| 21|05/2015 | Add date/time format options - these allow you to use epoch time for example. |
+| 21/05/2015 | Add date/time format options - these allow you to use epoch time for example. |
 | 07/07/2020 | Document moved to github and rewritten in markdown. |
