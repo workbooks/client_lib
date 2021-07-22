@@ -1,7 +1,7 @@
 #
 #  A Ruby wrapper for the Workbooks API documented at http://www.workbooks.com/api
 #
-#  Last commit $Id: workbooks_api.rb 26428 2015-06-19 20:44:54Z jkay $
+#  Last commit $Id: workbooks_api.rb 51692 2021-07-22 16:12:02Z jmonahan $
 #  License: www.workbooks.com/mit_license
 #
 #  Significant methods in the class Workbooks:
@@ -140,6 +140,7 @@ class WorkbooksApi
   attr_accessor :max_log_size
   attr_accessor :http_debug_output
   attr_reader :login_response
+  attr_accessor :audit_lifetime_days # If set to a positive integer audit records expire and are automatically deleted
 
   # The content_type governs the encoding used for data transfer to the Service. Two forms are
   # supported in this binding; use FORM_DATA for file uploads.
@@ -165,6 +166,7 @@ class WorkbooksApi
   #   - :fast_login: whether to skip generating certain items (e.g. my_queues) during login
   #   - :logger: to get logging output set to an instance of Logger in which case Logger#add is called
   #   - :http_debug_output: if :logger is also set HTTP debug output is also generated
+  #   - :audit_lifetime_days: if set to a positive integer audit records expire and are automatically deleted 
   #
   def initialize(params={})
     @application_name = params[:application_name] or raise WorkbooksApiException.new, 'An application name is required'
@@ -177,11 +179,13 @@ class WorkbooksApi
     @fast_login = params.has_key?(:fast_login) ? params[:fast_login] : true
     @service = params[:service] || DEFAULT_SERVICE
     @logger = params[:logger]
+    @audit_lifetime_days = params[:audit_lifetime_days]
     @http_debug_output = params[:http_debug_output]
     @max_log_size = params[:max_log_size] || MAX_LOG_SIZE
     @session_id = params[:session_id]
     @api_key = params[:api_key]
     @username = params[:username]
+    @logical_database_id = params[:logical_database_id]
   end
 
   #
@@ -194,12 +198,12 @@ class WorkbooksApi
   #
   def log(msg, expression=nil, level=Logger::DEBUG, log_size_limit=4096)
     if !@logger.nil?
-      msg << " «#{expression.inspect}»"
+      msg << " «#{expression.inspect}»" if !expression.nil?
       log_size_limit = [log_size_limit, max_log_size].min
       if msg.size > log_size_limit
         msg = "#{msg[0 .. log_size_limit/2]} ... (#{msg.size-log_size_limit} bytes) ... #{msg[-log_size_limit/2 .. -1]}"
       end
-      self.logger.add(level, "#{msg}\n")
+      self.logger.add(level, "#{msg}\n\n")
     end
     expression
   end
@@ -279,7 +283,7 @@ class WorkbooksApi
     # The authenticity_token is valid for a specific session and is required when any modifications are attempted.
     if response.is_a?(Net::HTTPOK)
       @logged_in = true
-      @user_queues = parsed_response['my_queues'].map{ |queue_name, queue_id| {queue_name.to_s => queue_id} }
+      @user_queues = parsed_response['my_queues'].map{ |queue_name, queue_id| {queue_name.to_s => queue_id} } if parsed_response['my_queues']
       @authenticity_token = parsed_response['authenticity_token']
       @database_instance_id = parsed_response['database_instance_id']
       @login_response = parsed_response
@@ -469,9 +473,7 @@ class WorkbooksApi
   # Ensure we are logged in
   # 
   def ensure_login
-    if !@logged_in
-      raise WorkbooksApiException.new(self), 'Not logged in'
-    end
+    login if !@logged_in
   end
 
   # 
@@ -550,6 +552,7 @@ class WorkbooksApi
     post_params[:_method] ||= method.to_s.upcase
     post_params[:client] ||= 'api'
     post_params[:_authenticity_token] ||= @authenticity_token if @authenticity_token && method != :get 
+    post_params[:_audit_lifetime_days] = @audit_lifetime_days if @audit_lifetime_days
 
     post_fields = nil
     
@@ -605,20 +608,22 @@ class WorkbooksApi
 
     #log("post_fields, first 1000 bytes", post_fields[0..999])
 
-    service = URI(@service)
-    @http ||= Net::HTTP.new(service.host, service.port) # Reuse the same connection if we can.
-
-    @http.set_debug_output(@logger) if @logger && @http_debug_output
-    @http.open_timeout = @connect_timeout
-    @http.read_timeout = @request_timeout
-    if service.scheme == 'https'
-      @http.use_ssl = true
-      @http.verify_mode = (@verify_peer ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE)
+    # Reuse the same connection if we can.
+    if !@http
+      service = URI(@service)
+      @http = Net::HTTP.new(service.host, service.port)
+      @http.set_debug_output(@logger) if @logger && @http_debug_output
+      @http.open_timeout = @connect_timeout
+      @http.read_timeout = @request_timeout
+      if service.scheme == 'https'
+        @http.use_ssl = true
+        @http.verify_mode = (@verify_peer ? OpenSSL::SSL::VERIFY_PEER : OpenSSL::SSL::VERIFY_NONE)
+      end
     end
-
+    
     response = nil
     request_type = (method == :get ? Net::HTTP::Get : Net::HTTP::Post)
-
+    
     begin
       http_request = request_type.new(url)
       http_request['Content-Type'] = content_type
