@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 39396 2018-04-23 15:28:43Z emustac $
+ *   Last commit $Id: workbooks_api.php 53884 2022-03-02 15:52:29Z jkay $
  *   License: www.workbooks.com/mit_license
  *
  *
@@ -242,7 +242,12 @@ class WorkbooksApi
     if (!isset($this->curl_multi_handle)) {
       $this->curl_multi_handle = curl_multi_init();
       if (function_exists('curl_multi_setopt')) { // More efficient if this is available; not an error if not.
-        curl_multi_setopt($this->curl_multi_handle, CURLMOPT_PIPELINING, true);
+        if (defined('CURLPIPE_NOTHING')) { // from cURL 7.43.0
+          curl_multi_setopt($this->curl_multi_handle, CURLMOPT_PIPELINING, CURLPIPE_NOTHING);
+        } else {
+          curl_multi_setopt($this->curl_multi_handle, CURLMOPT_PIPELINING, true);
+        }
+        // when we are working with HTTP/2, we can think about CURLPIPE_MULTIPLEX
       }
     }
     return $this->curl_multi_handle;
@@ -1347,7 +1352,7 @@ class WorkbooksApi
     
     $post_fields = NULL;
     if ($content_type == WorkbooksApi::FORM_URL_ENCODED) {
-      $post_fields = http_build_query($post_params, NULL, '&');
+      $post_fields = http_build_query($post_params, '', '&');
       if (!empty($ordered_post_params)) {
         $post_fields .= '&' . (is_array($ordered_post_params) ? implode('&', $ordered_post_params) : $ordered_post_params); 
       }
@@ -1850,7 +1855,7 @@ class WorkbooksApi
     $url .= $path;
 
     if ($query_params) {
-      $url .= '?' . http_build_query($query_params, NULL, '&');
+      $url .= '?' . http_build_query($query_params, '', '&');
     }
     
     // $this->log('getUrl() returns', $url);
