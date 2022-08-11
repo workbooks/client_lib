@@ -1174,8 +1174,15 @@ class WorkbooksApi
       $objs = array($objs);
     }  
     
+    $urlencode = true;   
+
+      if (array_key_exists('content_type',$options)) {
+        $urlencode = !(@$options['content_type'] == WorkbooksApi::FORM_DATA);
+      } 
+
     $filter_params = $this->encodeMethodParams($objs, $method);
-    $ordered_post_params = $this->fullSquare($objs, !(@$options['content_type'] == WorkbooksApi::FORM_DATA));
+    $ordered_post_params = $this->fullSquare($objs, $urlencode);
+    
     $response = $this->apiCall($endpoint, 'PUT', $params, array_merge($filter_params, $ordered_post_params), $options);
 
     // $this->log('batch() returns', $response, 'info');
@@ -1948,5 +1955,3 @@ if (isset($params) &&
   // Turn output buffering on
   ob_start();
 }
-
-?>
