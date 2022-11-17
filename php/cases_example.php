@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API to operate on Cases via a thin PHP wrapper.
  *
- *   Last commit $Id: cases_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: cases_example.php 33229 2017-01-24 13:13:05Z kasia $
  *
  *       The MIT License
  *
@@ -192,6 +192,68 @@ $update_case = array (
 $response = $workbooks->assertUpdate('crm/cases', $update_case);
 $case_object_id_lock_versions = $workbooks->idVersions($response);
 $workbooks->log('Updated case status', $response);
+
+/*
+ * Create a case contact 
+ */
+
+$case_id = $response['affected_objects'][0]['id'];
+
+// get a Person
+$filter_limit_select = array(
+  '_start' => '0', // Starting from the 'zeroth' record
+  '_limit' => '1', // fetch a single record
+  '_sort' => 'id', // Sort by 'id'
+  '_dir' => 'ASC', // in ascending order
+  '_select_columns[]' => array( // An array, of columns to select
+    'id',
+  )
+);
+$response = $workbooks->assertGet('crm/people.api', $filter_limit_select);
+$party_id = $response['data'][0]['id'];
+
+// get status picklist
+$picklist_select = array(
+  '_filters[]'     => array('name', 'eq', 'Case People Statuses')
+);
+
+$response = $workbooks->assertGet('admin/picklists.api', $picklist_select);
+$case_status_picklist_id = $response['data'][0]['id'];
+$picklist_entries = $workbooks->assertGet($case_product_category_picklist_api, array('picklist_id' => $case_status_picklist_id));
+$case_status_new_id = $picklist_entries['data'][0]['value'];
+
+$create_one_case_contact = array(
+  'case_id'               => $case_id,
+  'party_id'              => $party_id,
+  'case_contact_role'     => 'Primary contact',
+  'case_contact_status'   => $case_status_new_id
+);
+
+$response = $workbooks->assertCreate('crm/case_contacts', $create_one_case_contact);
+$workbooks->log('Created case contact successfully', $response);
+
+/*
+ * Update case contact
+ */
+
+$case_contact_id = $response['affected_objects'][0]['id'];
+$case_lock_version = $response['affected_objects'][0]['lock_version'];
+
+$update_case = array (
+    'id'                                   => $case_contact_id,
+    'lock_version'                         => $case_lock_version,
+    'case_contact_status'                  => $picklist_entries['data'][1]['value']
+);
+
+$response = $workbooks->assertUpdate('crm/case_contacts', $update_case);
+$case_contact_object_id_lock_versions = $workbooks->idVersions($response);
+$workbooks->log('Updated case contact status', $response);
+
+/*
+ * Delete the case contact
+ */
+$response = $workbooks->assertDelete('crm/case_contacts', $case_contact_object_id_lock_versions);
+$workbooks->log('Deleted case contact', $response);
 
 /*
  * Delete the case which was created in this script

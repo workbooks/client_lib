@@ -4,7 +4,7 @@
  *   A demonstration of using the Workbooks API to create a lead and related task
  *   object via a thin PHP wrapper
  *
- *   Last commit $Id: lead_task_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: lead_task_example.php 46106 2020-01-05 10:45:13Z jkay $
  *
  *       The MIT License
  *
@@ -121,11 +121,11 @@ $create_one_task = array(
   'assigned_to'                               => $unassigned_queue_id,
   'created_through_reference'                 => '4567',
   'description'                               => '<b>Initial Call</b> (rich text area content)',
-  'due_date'                                  => '31 Dec 2019',
+  'due_date'                                  => '31 Dec 2029',
   'name'                                      => 'Initial Call to Salem Products (Samuel Stevens)',
   'primary_contact_id'                        => $person_id,
   'primary_contact_type'                      => 'Private::Crm::Person',
-  'reminder_datetime'                         => 'Tue Dec 24 09:00:00 UTC 2019',
+  'reminder_datetime'                         => 'Tue Dec 24 09:00:00 UTC 2029',
   'reminder_enabled'                          => true,
 );
 

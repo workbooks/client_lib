@@ -8,7 +8,7 @@
  *   requests will be processed without blocking the calling script. The caller should later use
  *   asyncResponse() or assertAsyncResponse() to gather the response.
  *
- *   Last commit $Id: parallel_example.php 25941 2015-05-12 14:03:48Z jkay $
+ *   Last commit $Id: parallel_example.php 50752 2021-04-06 10:34:50Z kswift $
  *
  *       The MIT License
  *
@@ -141,6 +141,8 @@ foreach ($requests as $request) {
   $workbooks->log('Response', $response);
 }
 
+$workbooks->log('Received all outstanding requests');
+
 // Delete the api_data record created then updated earlier:
 // The update must complete before we can issue this
 $update_api_data_response = $workbooks->assertAsyncResponse($update_api_data_request);
@@ -184,7 +186,7 @@ for ($i = 0; $i < 20; $i++) {
 $i = 0;
 $received = 0;
 while ($received < count($fetch_requests)) {
-  echo "Waiting for all responses (looped " . ++$i . ") times.\n";
+  echo "Waiting for all responses received=$received/",count($fetch_requests)," (looped " . ++$i . ") times.\n";
   foreach ($fetch_requests as &$fetch_request) {
     if ($fetch_request == NULL) { continue; } // Ignore already-completed requests
 

@@ -5,7 +5,7 @@
  *   the same as settign a value on any other field. 
  *   Three different types of custom fields are being tested here  - checkbox, picklist and iframe
  *
- *   Last commit $Id: custom_field_example.php 27550 2015-09-24 14:02:04Z swhitehouse $
+ *   Last commit $Id: custom_field_example.php 51599 2021-07-08 14:08:15Z gbarlow $
  *
  *       The MIT License
  *
@@ -122,6 +122,7 @@ $create_custom_fields = array(
   array (
     'title'                                => 'Picklist custom field',
     'resource_type'                        => 'Private::Crm::Person',
+    'description'                          => 'An example pickist custom field',
     'data_type'                            => 'picklist',
     'picklist_id'                          => 1
   ),
@@ -131,7 +132,38 @@ $create_custom_fields = array(
      'default_height'                       => 300,
      'min_height'                           => 300,
      'data_type'                            => 'iframe',
-    'linked_url'                            => 'https://www.google.co.uk/maps?q=workbooks&ion=1&espv=2&bav=on.2,or.r_cp.&bvm=bv.102022582,d.ZGU&biw=1912&bih=961&dpr=1&um=1&ie=UTF-8&sa=X&ved=0CAwQ_AUoAGoVChMIi_PvrpjnxwIVMVrbCh1y1AYv'
+     'linked_url'                           => 'https://www.google.co.uk/maps?q=workbooks&ion=1&espv=2&bav=on.2,or.r_cp.&bvm=bv.102022582,d.ZGU&biw=1912&bih=961&dpr=1&um=1&ie=UTF-8&sa=X&ved=0CAwQ_AUoAGoVChMIi_PvrpjnxwIVMVrbCh1y1AYv',
+     'show_on_tab'                          => true, 
+     'will_modify_record'                   => true,
+  ),
+  array (
+    'title'                                => 'Decimal custom field test',
+    'resource_type'                        => 'Private::Crm::Person',
+    'description'                          => 'An example decimal custom field',
+    'data_type'                            => 'decimal',
+
+  ),
+  array (
+    'title'                                => 'Decimal custom field test 2',
+    'resource_type'                        => 'Private::Crm::Person',
+    'description'                          => 'An example decimal custom field, with the decimal places set',
+    'data_type'                            => 'decimal',
+    'decimal_places'                       => 5,
+
+  ),
+  array (
+    'title'                                => 'Percentage custom field test',
+    'resource_type'                        => 'Private::Crm::Person',
+    'description'                          => 'An example percentage custom field',
+    'data_type'                            => 'percentage',
+ 
+  ),
+  array (
+    'title'                                => 'Percentage custom field test 2',
+    'resource_type'                        => 'Private::Crm::Person',
+    'description'                          => 'An example percentage custom field, with the decimal places set',
+    'data_type'                            => 'percentage',
+    'decimal_places'                       => 3,
   ),
 );
 
@@ -140,16 +172,20 @@ $created_custom_fields = $response['affected_objects'];
 $workbooks->log('Created custom fields', $created_custom_fields);
 $object_id_lock_versions = $workbooks->idVersions($response);
 
-foreach (array(0, 1, 2) as $value) {
+foreach (array(0, 1, 2, 3, 4, 5, 6) as $value) {
   $id = $created_custom_fields[$value]['id'];
   $status = $created_custom_fields[$value]['status'];
   
+  # Log each record seperatelty, so that we can see the all the fields without truncation.
+  $workbooks->log("Created record $value", $created_custom_fields[$value]);
+   
   if ( $status != 'Available' ) {
     $workbooks->log("Newly created custom field, id: $id,  does not have \"Available\" status: ", $status );
   }
   else {
 		$workbooks->log("Newly created custom field, id: $id, has status: ", $status );
   }
+  
 }
 
 
@@ -173,7 +209,30 @@ $update_custom_fields = array(
   array (
     'id'                                   => $object_id_lock_versions[2]['id'],
     'lock_version'                         => $object_id_lock_versions[2]['lock_version'],
-    'linked_url'                           => '@cf_sales_lead_hubspot_profile@'
+    'linked_url'                           => '@cf_sales_lead_hubspot_profile@',
+    'description'                          => 'An example iframe custom field',
+    'will_modify_record'                   => false,
+    'show_on_tab'                          => false,
+  ),
+  array (
+    'id'                                   => $object_id_lock_versions[3]['id'],
+    'lock_version'                         => $object_id_lock_versions[3]['lock_version'],
+    'title'                                => 'Decimal custom field - UPDATED',
+  ),
+  array (
+    'id'                                   => $object_id_lock_versions[4]['id'],
+    'lock_version'                         => $object_id_lock_versions[4]['lock_version'],
+    'decimal_places'                       => 1,
+  ),
+  array (
+    'id'                                   => $object_id_lock_versions[5]['id'],
+    'lock_version'                         => $object_id_lock_versions[5]['lock_version'],
+    'title'                                => 'Percentage custom field - UPDATED',
+  ),
+  array (
+    'id'                                   => $object_id_lock_versions[6]['id'],
+    'lock_version'                         => $object_id_lock_versions[6]['lock_version'],
+    'decimal_places'                       => 4,
   ),
 );
 
@@ -275,7 +334,7 @@ $create_custom_fields = array(
      'default_height'                       => 300,
      'min_height'                           => 300,
      'data_type'                            => 'iframe',
-    'linked_url'                            => 'https://www.google.co.uk/maps?q=workbooks&ion=1&espv=2&bav=on.2,or.r_cp.&bvm=bv.102022582,d.ZGU&biw=1912&bih=961&dpr=1&um=1&ie=UTF-8&sa=X&ved=0CAwQ_AUoAGoVChMIi_PvrpjnxwIVMVrbCh1y1AYv'
+     'linked_url'                            => 'https://www.google.co.uk/maps?q=workbooks&ion=1&espv=2&bav=on.2,or.r_cp.&bvm=bv.102022582,d.ZGU&biw=1912&bih=961&dpr=1&um=1&ie=UTF-8&sa=X&ved=0CAwQ_AUoAGoVChMIi_PvrpjnxwIVMVrbCh1y1AYv',
   ),
 );
 
@@ -285,7 +344,7 @@ $created_custom_fields = $response['affected_objects'];
 $workbooks->log('Created async custom fields', $created_custom_fields);
 $object_id_lock_versions = $workbooks->idVersions($response);
 $workbooks->log( "object_id_lock_versions: ", $object_id_lock_versions );
-wait_for_custom_fields_to_attain_state( $workbooks, 'Available', 240, array( $object_id_lock_versions[0]['id'], $object_id_lock_versions[1]['id'], $object_id_lock_versions[2]['id'] ) );
+wait_for_custom_fields_to_attain_state( $workbooks, 'Available', 360, array( $object_id_lock_versions[0]['id'], $object_id_lock_versions[1]['id'], $object_id_lock_versions[2]['id'] ) );
 
 /*
  * Update those custom fields. You must specify the 'id' and 'lock_version' of records you want to update.
@@ -316,7 +375,7 @@ $updated_custom_fields = $response['affected_objects'];
 $workbooks->log('Updated custom fields', $updated_custom_fields);
 # Get the lock versons os that we can later delete the custom fields
 $object_id_lock_versions = $workbooks->idVersions($response);
-wait_for_custom_fields_to_attain_state( $workbooks, 'Available', 240, array( $object_id_lock_versions[0]['id'], $object_id_lock_versions[1]['id'], $object_id_lock_versions[2]['id'] ) );
+wait_for_custom_fields_to_attain_state( $workbooks, 'Available', 360, array( $object_id_lock_versions[0]['id'], $object_id_lock_versions[1]['id'], $object_id_lock_versions[2]['id'] ) );
 
 /*
  * Delete the custom fields created in this script

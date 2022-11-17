@@ -6,7 +6,7 @@
  *   Process Engine which will set up a session for you automatically without requiring
  *   an API key.
  *
- *   Last commit $Id: test_login_helper.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: test_login_helper.php 54366 2022-04-20 09:24:01Z klawless $
  *
  *       The MIT License
  *
@@ -38,12 +38,29 @@ $exit_ok = 0;
  * Login to Workbooks and return a handle to the workbooks connection
  */
 if(!function_exists('testLogin')) {
-  function testLogin($service          = 'http://localhost:3000',      // Set to NULL to use the production service
+
+  define('DEFAULT_SERVICE_ADDRESS', 'http://localhost:3000');
+  define('EXAMPLE_API_KEY', '01234-56789-01234-56789-01234-56789-01234-56789');
+  
+  function testLogin($service          = DEFAULT_SERVICE_ADDRESS,      // Set to NULL to use the production service
                      $application_name = 'test_client', 
                      $user_agent       = 'test_client/0.1', 
                      $verify_peer      = false,
-                     $api_key          = '01234-56789-01234-56789-01234-56789-01234-56789') {
-  
+                     $api_key          = EXAMPLE_API_KEY) {
+
+
+    // allow the server and API key to be overridden with environment variables
+    $service_env = getenv("WB_SERVICE");
+    $api_key_env = getenv("WB_API_KEY");
+
+    if ($service_env) {
+      $service = $service_env;
+    }
+
+    if ($api_key_env) {
+      $api_key = $api_key_env;
+    }
+    
     /*
      * Initialise the Workbooks API object
      */

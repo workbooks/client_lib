@@ -5,7 +5,7 @@
  *   The created_through_reference and created_through attributes are used as if the caller
  *   were synchronising with an external service.
  *
- *   Last commit $Id: people_example.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: people_example.php 56158 2022-10-14 13:59:50Z hsurendralal $
  *
  *       The MIT License
  *
@@ -54,6 +54,13 @@ $create_two_people = array(
     'main_location[street_address]'        => '100 Civvy Street',
     'main_location[telephone]'             => '01234 456789',
     'main_location[town]'                  => 'Beading',
+    'home_location[country]'               => '',
+    'home_location[county_province_state]' => '',
+    'home_location[fax]'                   => '01234 567890',
+    'home_location[postcode]'              => 'RG99 9RG',
+    'home_location[street_address]'        => '100 Civvy Street',
+    'home_location[telephone]'             => '1111 1111111',
+    'home_location[town]'                  => 'Reading',
     'no_email_soliciting'                  => false,
     'no_phone_soliciting'                  => true,
     'no_post_soliciting'                   => true,
@@ -66,12 +73,12 @@ $create_two_people = array(
   array (
     'name'                                 => 'Steve Stevens',
     'created_through_reference'            => '102',                      # The ID of the corresponding record in the external system
-    'main_location[country]'               => 'United Kingdom',
-    'main_location[county_province_state]' => 'Berkshire',
-    'main_location[postcode]'              => 'RG99 7RG',
-    'main_location[street_address]'        => '10 Castle Street',
-    'main_location[telephone]'             => '0345 6456789',
-    'main_location[town]'                  => 'Reading',
+    'home_location[country]'               => '',
+    'home_location[county_province_state]' => '',
+    'home_location[postcode]'              => '',
+    'home_location[street_address]'        => '',
+    'home_location[telephone]'             => '',
+    'home_location[town]'                  => 'Reading',
     'no_email_soliciting'                  => true,
     'no_phone_soliciting'                  => false,
     'no_post_soliciting'                   => true,
@@ -82,6 +89,7 @@ $create_two_people = array(
 );
 
 $response = $workbooks->assertCreate('crm/people', $create_two_people);
+$workbooks->log('Created People:', $response);
 $object_id_lock_versions = $workbooks->idVersions($response);
 
 /*
@@ -98,11 +106,13 @@ $update_two_people = array(
     'id'                                   => $object_id_lock_versions[1]['id'],
     'lock_version'                         => $object_id_lock_versions[1]['lock_version'],
     'name'                                 => 'Stephen Stevens',
+    'home_location[telephone]'             => '',
     'person_first_name'                    => 'Stephen',
   ),
 );
 
 $response = $workbooks->assertUpdate('crm/people', $update_two_people);
+$workbooks->log('Updated People:', $response);
 $object_id_lock_versions = $workbooks->idVersions($response);
 
 /*

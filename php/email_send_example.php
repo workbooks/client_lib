@@ -5,7 +5,7 @@
  *   Emails can be based on templates (with substitution of values from records) or
  *   created in a raw form ("rfc822").
  *
- *   Last commit $Id: email_send_example.php 32815 2016-12-13 12:36:50Z swhitehouse $
+ *   Last commit $Id: email_send_example.php 39800 2018-05-15 20:24:32Z jkay $
  *
  *       The MIT License
  *
@@ -250,6 +250,22 @@ $email_id = $email_id_lock_versions[0]['id'];
 confirm_email_sent( $email_id, 1 );
 
 
+/*
+ * Templates can also be found in the Template Library, if you know the ID or name of a template there.
+ */
+$create_library_templated_email = array(
+  'render_with_template_name' => 'Invoice',
+  'render_with_template_in_library' => TRUE,
+  'render_with_resource_type' => 'Private::Accounting::Invoice',
+  'render_with_resource_id' => 35,
+  'from_address' => 'from_address@workbooks.com',
+  'to_addresses' => 'to.address1@workbooks.com, to.address2@workbooks.com',
+  'cc_addresses' => 'cc.address1@workbooks.com, cc.address2@workbooks.com',
+  'bcc_addresses' => 'bcc.address@workbooks.com',
+  'status' => 'DRAFT',
+);
+$create_library_templated_email_response = $workbooks->assertCreate('email/emails', $create_library_templated_email);
+$workbooks->log('Created draft email from library template', $create_library_templated_email_response);
 
 /*
  * Create an email without asking for anything clever. Just supply some text. It will be sent using the

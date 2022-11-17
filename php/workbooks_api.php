@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 53884 2022-03-02 15:52:29Z jkay $
+ *   Last commit $Id: workbooks_api.php 56196 2022-10-20 13:44:51Z gbarlow $
  *   License: www.workbooks.com/mit_license
  *
  *
@@ -99,6 +99,7 @@ class WorkbooksApi
   protected $async_running = array();// In-flight async requests
   protected $async_queue = array();  // Async requests not sent yet (concurrency limit exceeded)
   protected $audit_lifetime_days = NULL; // If set to a positive integer audit records expire and are automatically deleted
+  protected $process_start_time = NULL; // The time this object was created which should be when the script process started
   
   /**
    * Those HTTP status codes of particular significance to the API.
@@ -214,6 +215,9 @@ class WorkbooksApi
       $this->setFastLogin($params['fast_login']);
     }
 
+    // Set the process start time to now
+    $this->process_start_time = time();
+
     $curl_handle = curl_init();
     $this->setCurlHandle($curl_handle);
 
@@ -221,7 +225,7 @@ class WorkbooksApi
       CURLOPT_USERAGENT      => $this->getUserAgent(),
       CURLOPT_CONNECTTIMEOUT => $this->getConnectTimeout(),
       CURLOPT_TIMEOUT        => $this->getRequestTimeout(),
-      CURLOPT_SSL_VERIFYHOST => $this->getVerifyPeer(),
+      CURLOPT_SSL_VERIFYHOST => $this->getVerifyPeer() ? 2 : 0,
       CURLOPT_SSL_VERIFYPEER => $this->getVerifyPeer(),
       CURLOPT_RETURNTRANSFER => true,
       CURLOPT_HEADER         => true,
@@ -562,6 +566,47 @@ class WorkbooksApi
   **/
   public function getAuditLifetime() {
     return $this->audit_lifetime_days;
+  }
+
+  /**
+   * Get the process start time in seconds since the Unix Epoch
+   *
+   * @return Integer the process start time in seconds
+  **/
+  protected function getProcessStartTime(){
+    return $this->process_start_time;
+  }
+
+  /**
+   * Get the elapsed time since the process started in seconds
+   *
+   * @return Integer the elapsed time in seconds
+  **/
+  protected function getElapsedProcessTime() {
+    return time() - $this->getProcessStartTime();
+  }
+
+  /**
+   * Get the process time allowed in seconds or NULL if not set
+   *
+   * @return Integer the process time allowed in seconds or NULL if not set
+  **/
+  protected function getProcessTimeout(){
+    return isset($_SERVER['TIMEOUT']) ? $_SERVER['TIMEOUT'] : NULL;
+  }
+
+  /**
+   * Get the process time remaining in seconds or NULL if no timeout is set
+   *
+   * @return Integer the time remaining in seconds or NULL
+  **/
+  public function getProcessTimeRemaining(){
+    if (!is_null($this->getProcessTimeout())){
+      $time_left = $this->getProcessTimeout() - $this->getElapsedProcessTime();
+      return $time_left < 0 ? 0 : $time_left;
+    }else{
+      return NULL;
+    }
   }
 
   /**
@@ -1324,6 +1369,12 @@ class WorkbooksApi
     $url_params = array(
       '_dc'     => round(microtime(true)*1000), // cache-buster
     );
+    
+    # Add a request parameter _process_time_remaining to tell the server how long this process client has left
+    if (!is_null($this->getProcessTimeRemaining())){
+      $url_params['_process_time_remaining'] = $this->getProcessTimeRemaining();
+    }
+    
     $url = $this->getUrl($endpoint, $url_params);
 
     $post_params = array_merge(array(

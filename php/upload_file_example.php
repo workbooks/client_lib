@@ -3,7 +3,7 @@
 /**
 * A demonstration of using the Workbooks API via a thin PHP wrapper to upload and download files
 *
-* Last commit $Id: upload_file_example.php 22499 2014-07-01 10:49:53Z jkay $
+* Last commit $Id: upload_file_example.php 45536 2019-11-13 20:56:58Z jkay $
 *
 * The MIT License
 *
@@ -69,7 +69,7 @@ $files = array(
     'data' => base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=='),
   ),
   array(
-    'name' => 'four_nulls.txt',
+    'name' => 'four,nulls.txt',
     'type' => 'text/plain',
     'data' => "\x00\x00\x00\x00",
   ),
@@ -95,14 +95,22 @@ $files = array(
   ),
 );
 
-$create_uploads = array();
-foreach ($files as &$file) {
+/*
+ * There are two ways in which files can be uploaded - using multipart/form-data, or using a DataURI. This
+ * example does each for half of the files.
+ */
+
+/*
+ * Option 1: use a temporary file and send using multipart/form-data for efficiency.
+ */
+$create_uploads_multipart = array();
+foreach (array_slice($files, 0, 3) as &$file) {
   $file['tmp_name'] = tempnam('', 'upload-');
   $fp = fopen($file['tmp_name'], 'w');
   $res = fwrite($fp, $file['data']);
   fclose($fp);
 
-  $create_uploads[] = array(
+  $create_uploads_multipart[] = array(
     'resource_id'   => $note_id,
     'resource_type' => 'Private::Note',
     'resource_attribute' => 'upload_files',
@@ -115,9 +123,25 @@ foreach ($files as &$file) {
 }
 
 // Always use the ('content_type' => multipart/form-data) option for uploading files: it is efficient.
-$response = $workbooks->assertCreate('resource_upload_files', $create_uploads, array(), array('content_type' => 'multipart/form-data'));
+$create_uploads_multipart_response = $workbooks->assertCreate('resource_upload_files', $create_uploads_multipart, array(), array('content_type' => 'multipart/form-data'));
 
-foreach ($files as &$file) { unlink($file['tmp_name']); }
+/*
+ * Option 2: use DataURI together with a filename.
+ */
+$create_uploads_datauri = array();
+foreach (array_slice($files, 3, 3) as &$file) {
+  $data_uri = "data:{$file['type']};base64," . base64_encode($file['data']);
+  $create_uploads_datauri[] = array(
+    'resource_id'   => $note_id,
+    'resource_type' => 'Private::Note',
+    'resource_attribute' => 'upload_files',
+    'upload_file[data]' => "[{$data_uri},{$file['name']}]"
+  );
+}
+$create_uploads_datauri_response = $workbooks->assertCreate('resource_upload_files', $create_uploads_datauri);
+
+
+foreach ($files as $file) { if (isset($file['tmp_name'])) { unlink($file['tmp_name']); }}
 
 /*
  * Now list them all via both the 'upload_files' endpoint and the 'resource_upload_files' endpoint and compare the contents of each with
@@ -125,7 +149,14 @@ foreach ($files as &$file) { unlink($file['tmp_name']); }
  */
 $uploaded_files = array();
 $filters = array();
-foreach ($response['affected_objects'] as $r) {
+foreach ($create_uploads_multipart_response['affected_objects'] as $r) {
+  $uploaded_files[] = array(
+    'id' => $r['upload_file[id]'],
+    'lock_version' => $r['upload_file[lock_version]'],
+  );
+  $filters[] = "['id', 'eq', '" . $r['upload_file[id]'] . "']";
+}
+foreach ($create_uploads_datauri_response['affected_objects'] as $r) {
   $uploaded_files[] = array(
     'id' => $r['upload_file[id]'],
     'lock_version' => $r['upload_file[lock_version]'],
