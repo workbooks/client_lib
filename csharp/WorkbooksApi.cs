@@ -1,7 +1,7 @@
 /** A C# wrapper for the Workbooks API
  *
  *  License: www.workbooks.com/mit_license
- *  Last commit $Id$
+ *  Last commit $Id: WorkbooksApi.cs 57625 2023-03-10 12:45:15Z klawless $
  *
  *
  * <summary> Significant methods in the class Workbooks:

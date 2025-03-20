@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLConnection;
 import java.net.URLEncoder;
@@ -37,7 +38,7 @@ import javax.xml.bind.DatatypeConverter;
 /** A Java wrapper for the Workbooks API 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: WorkbooksApi.java 26428 2015-06-19 20:44:54Z jkay $
+ * 	Last commit $Id: WorkbooksApi.java 65957 2025-03-10 16:33:30Z jkay $
  *
  *
  *  Significant methods in the class Workbooks:
@@ -92,7 +93,7 @@ public class WorkbooksApi {
 	/**
 	 * The wrapper class to handle the response from Workbooks. It has methods which return the data and the affected objects from the Workbooks Response
 	 */
-	class WorkbooksApiResponse {
+	public class WorkbooksApiResponse {
 		HashMap<String, Object> response = null;
 		private Integer total = null;
 
@@ -990,7 +991,8 @@ public class WorkbooksApi {
 		URL urlRequest = null;
 
 		log("Url to connect: ", new Object[] {url});
-		urlRequest = new URL(url);
+		urlRequest = URI.create(url).toURL();
+		
 		//connection = (HttpsURLConnection) urlRequest.openConnection();
 		connection = urlRequest.openConnection();
 		

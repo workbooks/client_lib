@@ -2,7 +2,7 @@
 #  A demonstration of using the Workbooks API to upload and download files via a thin Ruby wrapper
 #
 #
-#  Last commit $Id: upload_file_example.rb 22501 2014-07-01 12:17:25Z jkay $
+#  Last commit $Id: upload_file_example.rb 65980 2025-03-12 12:00:43Z jkay $
 #  License: www.workbooks.com/mit_license
 #
 
@@ -106,7 +106,7 @@ response.affected_objects.each do |r|
     'id' => r['upload_file[id]'],
     'lock_version' => r['upload_file[lock_version]'],
   }
-  filters <<  "['id', 'eq', '#{r['upload_file[id]']}']"
+  filters <<  "[\"id\", \"eq\", \"#{r['upload_file[id]']}\"]"
 end
 file_filter = {
   :_sort => 'id',
@@ -128,16 +128,16 @@ resource_filter = {
 resource_response = workbooks.assert_get('resource_upload_files', resource_filter);
 
 if files.size != resource_response.total || files.size != resource_response.data.size
-  workbooks.log('Get resource_upload_files: unexpected result size', {:files => files, :resource_response => resource_response}, :error)
+  workbooks.log('Get resource_upload_files: unexpected result size', {:files => files, :resource_response => resource_response}, Logger::ERROR)
   exit(1)
 end
 if files.size != file_response.total || files.size != file_response.data.size
-  workbooks.log('Get upload_files: unexpected result size', {:files => files, :file_response => file_response}, :error)
+  workbooks.log('Get upload_files: unexpected result size', {:files => files, :file_response => file_response}, Logger::ERROR)
   exit(1)
 end
 
 files.each_with_index do |file, i|
-  data_len = file[:data].size
+  data_len = file[:data].bytesize
   r = resource_response.data[i]
   f = file_response.data[i]
   if file[:name] == r['upload_file[file_name]'] &&
@@ -150,16 +150,27 @@ files.each_with_index do |file, i|
     # Everything OK; download the data, compare with the originally-uploaded data
     data = workbooks.get("upload_files/#{f['id']}/download", nil, :decode_json => false)
     if data.size != data_len
-      workbooks.log('File download failed: bad data length', [data.size, data_len, f], :error)
+      workbooks.log('File download failed: bad data length', [data.size, data_len, f], Logger::ERROR)
       exit(1)
     end
-    if data != file[:data]
-      workbooks.log('File comparison failed', [data, file[:data]], :error)
+    if data.bytes != file[:data].bytes
+      workbooks.log('File comparison failed', [data, file[:data]], Logger::ERROR)
       exit(1)
     end
     workbooks.log('Downloaded previously-uploaded file, comparisons OK', f);
   else
-    workbooks.log('File retrieval failed: differences', [files, resource_response, file_response], :error)
+    workbooks.log("File retrieval failed: differences\n
+     #{file[:name]} == #{r['upload_file[file_name]']}\n
+     #{file[:name]} == #{f['file_name']}\n
+     #{file[:type]} == #{r['upload_file[file_content_type]']}\n
+     #{file[:type]} == #{f['file_content_type']}\n
+     #{r['upload_file[id]']} == #{f['id']}\n
+     #{data_len} == #{r['upload_file[file_size]']}\n
+     #{data_len} == #{f['file_size']}'\n", ["#####", file, "#####", r, "#####", f], Logger::ERROR)
+
+     # Above data indicates this will fail but try, for debug
+     data = workbooks.get("upload_files/#{f['id']}/download", nil, :decode_json => false)
+     workbooks.log("Data is ", data[0..1024])
     exit(1)
   end
 end

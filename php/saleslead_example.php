@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API via a thin PHP wrapper to manipulate Sales Leads
  *
- *   Last commit $Id: saleslead_example.php 39761 2018-05-14 13:14:20Z jkay $
+ *   Last commit $Id: saleslead_example.php 58263 2023-05-04 13:45:10Z kswift $
  *
  *       The MIT License
  *
@@ -49,7 +49,12 @@ $create_one_sales_lead = [
   'person_lead_party[biography]'             => 'Tinker, tailor, soldier and spy',
   'person_lead_party[skype_name]'            => 'georgersmiley',
   'person_lead_party[twitter_url]'           => 'https://twitter.com/Workbooks',
-  'org_lead_party[logo_url]'                 => 'https://www.workbooks.com/themes/workbooks/images/content/workbooks-logo.svg'
+  /* workbooks.com not accessable from test servers so try to pick something that will be accessable and around for a long time
+   * Alternative might be this but fails with server certificate verification
+   * $service = $workbooks->getService();
+   * "$service/images/taskbar/workbooks_startIcon_2021_clean.svg"
+   */
+  'org_lead_party[logo_url]'                 => 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png'
 ];
 
 $create_one_sales_lead_response = $workbooks->assertCreate('crm/sales_leads', $create_one_sales_lead);

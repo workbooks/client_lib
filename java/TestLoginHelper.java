@@ -9,13 +9,13 @@ import java.util.HashMap;
  *  an API key.
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: TestLoginHelper.java 22080 2014-05-21 12:53:52Z bviroja $
+ * 	Last commit $Id: TestLoginHelper.java 65931 2025-03-06 15:19:28Z jkay $
  */
 
 public class TestLoginHelper {
 	
 	HashMap<String, Object> params = new HashMap<String,Object>();
-	String service = "http://localhost:3000";
+	String service = System.getenv("WB_SERVICE").isEmpty() ? "http://localhost:3000" : System.getenv("WB_SERVICE");
 	String application_name = "java_test_client";
 	String user_agent = "java_test_client/0.1";
 	String api_key ="01234-56789-01234-56789-01234-56789-01234-56789";

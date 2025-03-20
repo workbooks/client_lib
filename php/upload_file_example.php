@@ -3,11 +3,11 @@
 /**
 * A demonstration of using the Workbooks API via a thin PHP wrapper to upload and download files
 *
-* Last commit $Id: upload_file_example.php 45536 2019-11-13 20:56:58Z jkay $
+* Last commit $Id: upload_file_example.php 65978 2025-03-12 11:43:43Z jkay $
 *
 * The MIT License
 *
-* Copyright (c) 2008-2013, Workbooks Online Limited.
+* Copyright (c) 2008-2025, Workbooks Online Limited.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,8 @@ if (!isset($workbooks)){
  * Create a single organisation, to which we will attach a note.
  */
 $create_one_organisation = array('name' => 'Test Organisation');
-$organisation_id_lock_versions = $workbooks->idVersions($workbooks->assertCreate('crm/organisations', $create_one_organisation));
+$response = $workbooks->assertCreate('crm/organisations', $create_one_organisation);
+$organisation_id_lock_versions = $workbooks->idVersions($response);
 
 /*
  * Create a note associated with that organisation, to which we will attach files.
@@ -56,7 +57,8 @@ $create_note = array(
   'subject'   => 'Test Note',
   'text'      => 'This is the body of the test note. It is <i>HTML</i>.'
 );
-$note_id_lock_versions = $workbooks->idVersions($workbooks->assertCreate('notes', $create_note));
+$workbooks->assertCreate('notes', $create_note);
+$note_id_lock_versions = $workbooks->idVersions($response);
 $note_id = $note_id_lock_versions[0]['id'];
 
 /*
@@ -91,9 +93,23 @@ $files = array(
   array(
     'name' => '2mbytes.txt',
     'type' => 'text/plain', 
-    'data' => "A large text file\n" . str_repeat ("123456789\n", 0.2*1024*1024) . "last line\n",
+    'data' => "A large text file\n" . str_repeat ("123456789\n", 200*1024) . "last line\n",
   ),
 );
+
+// Enable this if you want to test virus scanning
+$try_virus_upload = false;
+
+if ($try_virus_upload) {
+  array_push($files, 
+    array(
+      'name' => 'eicar.txt',
+      'type' => 'text/plain',
+      // Break up eicar in an attempt to hide it from virus scanning on the client OS
+      'data' => 'X5O!P%@AP[4\PZX54(P^)7CC)7}' . '$EICAR-STANDARD-ANTIVIRUS-TEST-FILE!$H+H*',
+    )
+  );
+}
 
 /*
  * There are two ways in which files can be uploaded - using multipart/form-data, or using a DataURI. This
@@ -129,7 +145,7 @@ $create_uploads_multipart_response = $workbooks->assertCreate('resource_upload_f
  * Option 2: use DataURI together with a filename.
  */
 $create_uploads_datauri = array();
-foreach (array_slice($files, 3, 3) as &$file) {
+foreach (array_slice($files, 3) as &$file) {
   $data_uri = "data:{$file['type']};base64," . base64_encode($file['data']);
   $create_uploads_datauri[] = array(
     'resource_id'   => $note_id,
@@ -154,14 +170,14 @@ foreach ($create_uploads_multipart_response['affected_objects'] as $r) {
     'id' => $r['upload_file[id]'],
     'lock_version' => $r['upload_file[lock_version]'],
   );
-  $filters[] = "['id', 'eq', '" . $r['upload_file[id]'] . "']";
+  $filters[] = "[\"id\", \"eq\", \"" . $r['upload_file[id]'] . "\"]";
 }
 foreach ($create_uploads_datauri_response['affected_objects'] as $r) {
   $uploaded_files[] = array(
     'id' => $r['upload_file[id]'],
     'lock_version' => $r['upload_file[lock_version]'],
   );
-  $filters[] = "['id', 'eq', '" . $r['upload_file[id]'] . "']";
+  $filters[] = "[\"id\", \"eq\", \"" . $r['upload_file[id]'] . "\"]";
 }
 $file_filter = array(
   '_sort' => 'id',

@@ -1,6 +1,6 @@
  /**
   * 	License: www.workbooks.com/mit_license
-  * 	Last commit $Id$
+  * 	Last commit $Id: FilterExample.cs 65874 2025-02-28 14:11:26Z jmonahan $
   *
   *   A demonstration of using the Workbooks API to find records using "filters" via a thin C# wrapper
   */
@@ -144,9 +144,9 @@ namespace ApiWrapper
 				filter3.Add (limitKey, limit_select [limitKey]);
 			}
 			filter3.Add("_filter_json", "[" +
-				"['main_location[county_province_state]', 'eq', 'Berkshire']," +
-				"['main_location[county_province_state]', 'ct', 'Yorkshire']," +
-				"['main_location[street_address]', 'not_blank', '']" +
+				"[\"main_location[county_province_state]\", \"eq\", \"Berkshire\"]," +
+				"[\"main_location[county_province_state]\", \"ct\", \"Yorkshire\"]," +
+				"[\"main_location[street_address]\", \"not_blank\", \"\"]" +
 				"]");
 			filter3.Add("_fm", "(1 OR 2) AND 3");
 

@@ -1,0 +1,25 @@
+h1. Creating a Python wrapper for the Workbooks API
+
+h2. Install python3 to mac:
+
+<pre>
+# Install python (python3)
+brew install python3 # not sudo
+# => prompts for xcode-select --install if no command line tools available. Now repeat
+brew install python3
+
+# Install 'requests' module
+pip3 install requests
+# Upgrade pip
+python3.11 -m pip install --upgrade pip
+</pre>
+ 
+h2. Install python3 on cruise:
+
+Unnecessary?
+
+<pre>
+sudo apt install python3-pip
+</pre>
+
+ 

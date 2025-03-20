@@ -1,17 +1,14 @@
 # Introducing Workbooks
 
-<a href="https://www.workbooks.com">Workbooks</a> is an integrated suite of CRM and Business applications designed explicitly to give small and mid-size organisations the tools to drive top line growth, increase productivity, reduce operating costs and improve the performance of their
-business.
+<a href="https://www.workbooks.com">Workbooks</a> is an integrated suite of CRM and Business applications designed explicitly to give small and mid-size organisations the tools to drive top line growth, increase productivity, reduce operating costs and improve the performance of their business.
 
-Accessed as an online service from anywhere with an internet connection, Workbooks brings together customer relationship management (CRM) and back-office accounting applications that up until now have been managed by disparate systems unable to
-'talk' to each other.
+Accessed as an online service from anywhere with an internet connection, Workbooks brings together customer relationship management (CRM) and back-office accounting applications that up until now have been managed by disparate systems unable to 'talk' to each other.
 
 Together, the Workbooks applications effortlessly drive best practice in sales and marketing, customer order management, customer service, invoicing, purchasing and company management.
 
 # The Workbooks API
 
-All external applications that integrate with the core Workbooks Service do so using the Workbooks API. The Workbooks user interface, Workbooks Desktop, is a single-page JavaScript UI that is built to a client/server model. The interactions between
-the Workbooks Desktop and the core Workbooks Service are done using an extended version of the Workbooks API documented here. Using the Workbooks Desktop you can also learn about the relationships between the various Workbooks record types. Record types include CRM record types (such as People and Organisations, Activities and Cases), Transaction documents (such as Orders, Invoices and Credit Notes) with associated Line Items, configuration record types such as Picklists, Scripts and Processes, and custom record types.
+All external applications that integrate with the core Workbooks Service do so using the Workbooks API. The Workbooks user interface, Workbooks Desktop, is a single-page JavaScript UI that is built to a client/server model. The interactions between the Workbooks Desktop and the core Workbooks Service are done using an extended version of the Workbooks API documented here. Using the Workbooks Desktop you can also learn about the relationships between the various Workbooks record types. Record types include CRM record types (such as People and Organisations, Activities and Cases), Transaction documents (such as Orders, Invoices and Credit Notes) with associated Line Items, configuration record types such as Picklists, Scripts and Processes, and custom record types.
 
 To adapt Workbooks to the needs of your business you may not need to resort to the API; Workbooks can be extended through custom fields, form layouts, record templates and other techniques.
 
@@ -19,9 +16,11 @@ The Workbooks API allows developers to have access to information stored inside 
 
 The API is the "contract" between Workbooks and its client applications, as such we work to ensure that code written to the API in <a href="https://www.workbooks.com/resource-documents/workbooks-company-timeline/">2009</a> continues to work correctly with the evolved Workbooks service today.
 
-We have published bindings for <a href="https://github.com/workbooks/client_lib/tree/master/php">PHP</a>, <a href="https://github.com/workbooks/client_lib/tree/master/ruby">Ruby</a>, <a href="https://github.com/workbooks/client_lib/tree/master/csharp">.NET (C#)</a> and <a href="https://github.com/workbooks/client_lib/tree/master/php">Java</a> on <a href="http://github.com/workbooks/client_lib/">github</a>. We recommend that you use these bindings rather than making calls directly using the raw HTTP and the underlying "wire protocol". Note that these bindings do not change often, because they do not need to.  They are "wrappers" for the Workbooks API which make it easier to work with than using HTTPS requests and responses directly.
+## Language Bindings
 
-We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service. If you would like to request bindings for other languages, please <a href="mailto:support@workbooks.com">contact our support team</a>.
+We have published bindings for <a href="https://github.com/workbooks/client_lib/tree/master/php">PHP</a>, <a href="https://github.com/workbooks/client_lib/tree/master/ruby">Ruby</a>, <a href="https://github.com/workbooks/client_lib/tree/master/python">Python</a>, <a href="https://github.com/workbooks/client_lib/tree/master/csharp">.NET (C#)</a> and <a href="https://github.com/workbooks/client_lib/tree/master/java">Java</a> alongside some basic examples of their use, here on <a href="http://github.com/workbooks/client_lib/">github</a>. If you use one of these languages we recommend that you use these bindings rather than making calls directly using the raw HTTP and the underlying "wire protocol". Most of the example API code we provide here is for PHP. Note that these bindings do not change often, because they do not need to.  They are "wrappers" for the Workbooks API which make the API easier to work with than using HTTP requests and responses directly.
+
+We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service.  *These bindings are provided "as-is" and without any commitment to support.* If you do find issues with the bindings published here we welcome the submission of patches which we will evaluate and may merge in due course.
 
 ## Workbooks Process Engine
 Using the Workbooks Process Engine you can host API scripts within Workbooks itself; Workbooks takes care of authentication and logging automatically for scripts that run under the Process Engine. The Script Library within Workbooks provides access to Scripts which you can take and add to your own Workbooks database which are run by the Process Engine. For the majority of users we recommend using PHP scripts within the Workbooks Process Engine. More information about using the Process Engine is in the documentation for the PHP binding.
@@ -106,6 +105,10 @@ field called or ending in "id" to expect an array of integers. Current values ca
   the timezone is always UTC. Depending on your language you may use a call such as `strptime()` to parse such strings into DateTimes and
   `strftime()` to do the reverse. Datetime values in Workbooks are represented in the UTC timezone - you should convert to and from local
   time on the client.
+* `var_date_time` Read and write. A Date with an optional Time. An attribute of this type will always be alternately accessible via similarly named `*_date` and `*_datetime` attributes, which may be easier for getting/setting values. Represented as a comma-separated string of the form "value,flags,timezone".
+    * `value` can be either a Date, or a Datetime, represented in the ISO 8601 format.
+    * `flags` define further information about the value: 0 indicates that the value is a Date, and 1 indicates that the value is a Datetime.
+    * `timezone` is the IANA timezone in which this value was created.
 * `decimal` Read and write. A decimal number represented as a decimal string, and stored with a fixed precision and scale providing
   accurate decimal mathematics. The precision is the number of significant digits, while the scale is the number of digits that can be
   stored following the decimal point. For example, the number 123.45 has a precision of 5 and a scale of 2. A decimal with a precision of
@@ -141,6 +144,30 @@ API responses typically contain several dates and times. By default they are for
 * `"due_date" : "22 May 2009",` (date)
 * `"cf_meeting_time_field" : "21:30:00",` (time)
 * `"updated_at" : "Fri May 15 14:36:54 UTC 2009",` (datetime)
+* `"start" : "2023-09-01T09:00:00Z,1,Etc/UTC",` (var_date_time)
+* `"start" : "2023-09-01,0,Etc/UTC",` (var_date_time)
+
+As mentioned in the Datatypes section above, `var_date_time` attributes are also available via similarly named `*_date` and `*_datetime` attributes, which allow the value to be get and set as either a Date or a Datetime independently of the main attribute, if that is more convenient. _Note that you may only set one of the three attributes at a time, but you may select any of them._
+
+For example, setting `due` to the following value (a Date with a Time):
+
+* `"due" : "2023-09-01T16:30:00Z,1,Etc/UTC",`
+
+Would return the following values from `due_date` and `due_datetime`:
+
+* `"due_date" : "1 September 2023",`
+* `"due_datetime" : "Fri September 1 16:30:00 UTC 2023",`
+
+And setting `due` to just a Date:
+
+* `"due" : "2023-09-01,0,Etc/UTC",`
+
+Would return the following values from `due_date` and `due_datetime`:
+
+* `"due_date" : "1 September 2023",`
+* `"due_datetime" : "Fri September 1 17:00:00 UTC 2023",`
+
+Note that `due_datetime` has a time, despite `due` being a Date. For this attribute (others may vary), the time returned when the value is a Date is dictated by the user's "Preferred Due time".
 
 The output format can be changed by passing optional parameters during login or on each request:
 
@@ -148,7 +175,7 @@ The output format can be changed by passing optional parameters during login or 
 * `_json_output_time_format` Change the time output format from the default: `'%H:%M:%S'`.
 * `_json_output_datetime_format` Change the date/time output format from the default: `'%a %b %d %H:%M:%S %Z %Y'`. Use the value `'%s'` to get a seconds-since-the-epoch timestamp.
 
-Depending on your language you may use a call such as `strptime()` to parse such strings into Dates, DateTimes or Times and `strftime()` to do the reverse. Note that with the default
+Depending on your language you may use a call such as `strptime()` to parse such strings (with the exception of `var_date_time` values) into Dates, DateTimes or Times and `strftime()` to do the reverse. Note that with the default
 format the day of the month in a Date will contain a leading space when it is less than 10. For example the 2nd of May 2010 will be `" 2 May 2010"`. The API always uses the UTC
 timezone for date-times, whereas dates and times, being less precise, do not have a timezone.
 
@@ -262,16 +289,16 @@ Windows users: please be careful with quote marks. Avoid smart quotes and use "d
 # Authentication: Sessions, Login and Logout
 If your client is hosted within the Workbooks Process Engine then sessions are automatically established for you by the PHP code in `workbooks_api.php` and there is no need to explicitly handle authentication. The Process Engine uses the APIs documented below to implement this but it is transparent to the user.
 
-The Workbooks API is normally session-based. Most uses of the API require you to first establish a session using /login. Sessions timeout after
-a period of inactivity, and are forcefully terminated by the service from time to time, for example when the service software is upgraded. A
-well-behaved API client will close its sessions promptly using `/logout`. Session-IDs are hexadecimal strings passed in the `Workbooks-Session`
-cookie.
+The Workbooks API can be used with or without sessions. It is simplest to pass an api_key parameter with each request.
+
+Alternatively, sessions can be established using /login, they expire after a period of inactivity, and are forcefully terminated by the service from time to time, for example when the
+service software is upgraded. A well-behaved API client will close its sessions promptly using `/logout`. Session-IDs are hexadecimal strings passed in the `Workbooks-Session` cookie.
 
 The options available to authenticate are:
 
-* Preferred: pass in an api_key to create a session using the login API.
+* Pass in an api_key parameter without first establishing a session.
+* Pass in an api_key to create a session using the login API.
 * Use the login API using a username and password.
-*   Pass in an api_key parameter without first establishing a session.  If sessions are not used then each API call incurs *significant* additional overhead in order to establish a context in which the request can be run. 
 
 Users can create API Keys within the Workbooks Desktop; separate API Keys are normally created for each client a user wishes to access Workbooks on their behalf. API Keys grant access to a specific database.
 
@@ -593,31 +620,33 @@ For example: `(1 AND 2) OR 3` would require that only rows that match filters 1 
 | Operator | Meaning | Data types |
 | -------: | ------- | ---------- |
 | bg | Begins with | string |
-| blank | Is blank | string, integer, float, currency, date, time, datetime |
+| blank | Is blank | string, integer, float, currency, date, time, datetime, var_date_time |
 | ct | Contains | string |
 | eq | On | date |
-| xeq | At | time, datetime |
+| eq | At | time, datetime, var_date_time |
 | eq | Equals | boolean, string, integer, float, currency |
 | false | Is false | boolean |
 | ge | Greater than or equal | integer, float, currency |
-| ge | On or after | date, time, datetime |
-| ge_today | Is on or after today | date, datetime |
-| gt_today | After today | date, datetime |
+| ge | On or after | date, time, datetime, var_date_time |
+| ge_today | Is on or after today | date, datetime, var_date_time |
+| gt_today | After today | date, datetime, var_date_time |
 | gt | Greater than | integer, float, currency |
-| gt | After | date,time, datetime |
+| gt | After | date, time, datetime, var_date_time |
 | le | Less than or equal | integer, float, currency |
-| le | On or before | date, time, datetime |
+| le | On or before | date, time, datetime, var_date_time |
 | lt | Less than | integer, float, currency |
-| lt | Before | date, time, datetime |
-| le_today | Is on or before today | date, datetime |
-| lt_today | Before today | date, datetime |
+| lt | Before | date, time, datetime, var_date_time |
+| le_today | Is on or before today | date, datetime, var_date_time |
+| lt_today | Before today | date, datetime, var_date_time |
+| between | Between | integer, float, currency, date, time, datetime, var_date_time |
+| not_between | Not between | integer, float, currency, date, time, datetime, var_date_time |
 | nbg | Does not begin with | string |
 | nct | Does not contain | string |
 | ne | Not equal | boolean, string, integer, float, currency |
 | ne | Not on | date |
-| ne | Not at | time, datetime |
-| not_blank | Is not blank | string, integer, float, currency, date, time, datetime |
-| today | Is today | date, datetime |
+| ne | Not at | time, datetime, var_date_time |
+| not_blank | Is not blank | string, integer, float, currency, date, time, datetime, var_date_time |
+| today | Is today | date, datetime, var_date_time |
 | true | Is true | boolean |
 
 For the `blank`, `not_blank`, `true`, `false`, `today`, `le_today`, `lt_today`, `ge_today` and `gt_today` filtering types (which do not
@@ -698,6 +727,16 @@ curl -i -g -s \
      http://secure.workbooks.com/crm/people.api
 </code></pre>
 
+Using the `between` and `not_between` filtering types provides a single filter that behaves like two individial `ge` and `le` filters. For these types, `fc[]` must be an array of two values, enclosed in `JSON()`.
+
+An example filter to select all records that are due in December 2023: `_ff[]=due&_ft[]=between&_fc[]=JSON([2023-12-01,2023-12-31])`
+
+Further limiting the filter to exclude an additional period of time: `_ff[]=due&_ft[]=between&_fc[]=JSON([2023-12-01,2023-12-31])&_ff[]=due&_ft[]=not_between&_fc[]=JSON([2023-12-20T17:30:00Z,2023-12-27T09:00:00Z])`
+
+Filters on `datetime` and `var_date_time` attributes will accept `date`, `datetime`, and `var_date_time` values within `fc[]`, meaning that you can select values on a particular day, or at a specific time.
+
+An example selecting `datetime` values on a given day: `_ff[]=created_at&_ft[]=eq&_fc[]=2023-09-01`
+
 ### Selecting Columns
 
 Use the `_select_columns[]` parameter multiple times to specify the set of columns you want to receive. If this is omitted you will get
@@ -748,7 +787,7 @@ The data can be obtained using two different paths:
   create more than one report with the same name so if you are accessing reports by name, make sure the names are unique otherwise you may
   not get the results you expect.
 
-* By specifying an .xls extension, the report can be retrieved in XSL Spreadsheet format (compatible with recent versions of Microsoft Excel) using either of the approaches above.
+* By specifying an .xlsx extension, the report can be retrieved in XLSX Spreadsheet format (compatible with recent versions of Microsoft Excel) using either of the approaches above.
 
 # Changing Objects
 
@@ -1385,3 +1424,4 @@ We will be able to help you much more effectively if you can give us a clear con
 | 30/01/2015 | It is no longer necessary to use the linked_item_association_for_ prefix when using Dynamic Linked Items. |
 | 21/05/2015 | Add date/time format options - these allow you to use epoch time for example. |
 | 07/07/2020 | Document moved to github and rewritten in markdown. |
+| 19/09/2023 | Add VarDateTimes and between/not_between filters. |

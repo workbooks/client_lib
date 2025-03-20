@@ -224,15 +224,15 @@ _Write log records_
 
 This is a simple wrapper around `Logger`.
 
-The `log()` method can be called with up to four parameters. All but the first are optional. The first parameter is a string to label the log record. The second parameter is data (e.g. an array, string or other data structure) which is dumped. The third parameter is a log level; log levels include `:error`, `:warning`, `:notice`, `:info` and `:debug` (the default). The fourth is the size limit for how much will be logged.
+The `log()` method can be called with up to four parameters. All but the first are optional. The first parameter is a string to label the log record. The second parameter is data (e.g. an array, string or other data structure) which is dumped. The third parameter is a log level; log levels include `Logger::ERROR`, `Logger::WARN`, `Logger:::INFO` and `Logger::DEBUG` (the default). The fourth is the size limit for how much will be logged.
 
 Examples:
 <pre><code>
     workbooks.log('Got here')
     workbooks.log("Invoked", [params, form_fields], :info)
     workbooks.log('Fetched a data item', response['data'])
-    workbooks.log('Bad response for non-existent item', [status, response], :error)
-    workbooks.log('Bad response for non-existent item', [status, response], :error, 99999)
+    workbooks.log('Bad response for non-existent item', [status, response], Logger::ERROR)
+    workbooks.log('Bad response for non-existent item', [status, response], Logger::ERROR, 99999)
 </code></pre>
 
 ## Further Information
@@ -244,7 +244,7 @@ The API is documented at <a href="http://www.workbooks.com/api" target="_blank">
 For most systems the requirements will already be present with a standard Ruby installation. You may need to obtain a JSON 
 parser if you are running Ruby prior to version 1.9.
 
-This binding has been tested on ruby 1.8.7 (Ubuntu 12.04 LTS) and on ruby 2.0.0 (Mac OS X 10.9.3)
+This binding has been tested on ruby 1.8.7, ruby 2.3, ruby 2.5, ruby 3.3 and ruby 3.4.
 
 ## License
 
@@ -252,7 +252,7 @@ Licensed under the MIT License
 
 > The MIT License
 > 
-> Copyright (c) 2008-2014, Workbooks Online Limited.
+> Copyright (c) 2008-2025, Workbooks Online Limited.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -274,4 +274,4 @@ Licensed under the MIT License
 
 ## Support
 
-Please contact <a href="mailto:support@workbooks.com">support@workbooks.com</a>. Enhancement suggestions should be logged on the Workbooks ideas forum at <a href="http://ideas.workbooks.com" target="_blank">http://ideas.workbooks.com</a>.
+We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service.  *These bindings are provided "as-is" and without any commitment to support.* If you do find issues with the bindings published here we welcome the submission of patches which we will evaluate and may merge in due course.

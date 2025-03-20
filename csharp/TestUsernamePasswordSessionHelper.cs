@@ -1,6 +1,6 @@
  /**
   * 	License: www.workbooks.com/mit_license
-  * 	Last commit $Id$
+  * 	Last commit $Id: TestUsernamePasswordSessionHelper.cs 63933 2024-09-03 14:06:12Z jmonahan $
   *
   */
 using System;

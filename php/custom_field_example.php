@@ -5,7 +5,7 @@
  *   the same as settign a value on any other field. 
  *   Three different types of custom fields are being tested here  - checkbox, picklist and iframe
  *
- *   Last commit $Id: custom_field_example.php 51599 2021-07-08 14:08:15Z gbarlow $
+ *   Last commit $Id: custom_field_example.php 66030 2025-03-17 16:41:31Z jkay $
  *
  *       The MIT License
  *
@@ -82,7 +82,7 @@ function wait_for_custom_fields_to_attain_state( $workbooks, $state, $timeout, $
     }
   
     if ( $match == true ) {
-      $workbooks->log("Newly craeted/updated Custom field are all status: ", $state );
+      $workbooks->log("Newly created/updated Custom field are all status: ", $state );
       break;
     }
     else {
@@ -94,7 +94,7 @@ function wait_for_custom_fields_to_attain_state( $workbooks, $state, $timeout, $
   }
 
   if ( $i == $timeout ) {
-     $workbooks->log("ERROR: Timeout waiting for custom fields to attain a status of ${state}");
+     $workbooks->log("ERROR: Timeout waiting for custom fields to attain a status of {$state}");
      return(false);
   }
   
@@ -378,10 +378,10 @@ $object_id_lock_versions = $workbooks->idVersions($response);
 wait_for_custom_fields_to_attain_state( $workbooks, 'Available', 360, array( $object_id_lock_versions[0]['id'], $object_id_lock_versions[1]['id'], $object_id_lock_versions[2]['id'] ) );
 
 /*
- * Delete the custom fields created in this script
+ * Delete the custom fields created in this script. Don't do these asynchronously because another test may be about to recreate them.
  */
 
-$response = $workbooks->assertDelete('admin/custom_fields', $object_id_lock_versions, $use_async );
+$response = $workbooks->assertDelete('admin/custom_fields', $object_id_lock_versions );
 $deleted_custom_fields = $response['affected_objects'];
 $workbooks->log('Deleted custom_fields', $deleted_custom_fields);
 

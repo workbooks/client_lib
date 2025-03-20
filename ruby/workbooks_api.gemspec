@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.name        = 'workbooks_api'
-  s.version     = '1.0.0'
-  s.date        = '2014-07-04'
+  s.version     = '1.0.1'
+  s.date        = '2023-05-05'
   s.summary     = "A ruby wrapper for the Workbooks API"
   s.authors     = ["Workbooks"]
   s.email       = 'support@workbooks.com'
@@ -251,7 +251,7 @@ The API is documented at <a href="http://www.workbooks.com/api" target="_blank">
 For most systems the requirements will already be present with a standard Ruby installation. You may need to obtain a JSON 
 parser if you are running Ruby prior to version 1.9.
 
-This binding has been tested on ruby 1.8.7 (Ubuntu 12.04 LTS) and on ruby 2.0.0 (Mac OS X 10.9.3)
+This binding has been tested on ruby 1.8.7 (Ubuntu 12.04 LTS), ruby 2.0.0 (Mac OS X 10.9.3) and ruby 3.2.0 (Mac OS 13.2.1)
 
 ## Support
 

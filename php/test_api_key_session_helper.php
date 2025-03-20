@@ -7,7 +7,7 @@
  *
  *   If you are running under the Process Engine none of this is necessary.
  *
- *   Last commit $Id: test_api_key_session_helper.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: test_api_key_session_helper.php 63933 2024-09-03 14:06:12Z jmonahan $
  *
  *       The MIT License
  *
@@ -39,11 +39,30 @@ $exit_ok = 0;
  * Login to Workbooks and return a handle to the workbooks connection
  */
 function testLogin($service          = 'http://localhost:3000',      // Set to NULL to use the production service
-                   $application_name = 'test_client', 
-                   $user_agent       = 'test_client/0.1', 
+                   $application_name = 'php_test_client', 
+                   $user_agent       = 'php_test_client/0.1', 
                    $verify_peer      = false, 
                    $api_key          = '01234-56789-01234-56789-01234-56789-01234-56789') {
 
+  // allow the server, API key and request timeout to be overridden with environment variables
+  $server_env = getenv("WB_SERVICE");
+  $api_key_env = getenv("WB_API_KEY");
+  $request_timeout_env = getenv("WB_REQUEST_TIMEOUT");
+
+  if ($server_env) {
+    $service = $server_env;
+  }
+
+  if ($api_key_env) {
+    $api_key = $api_key_env;
+  }
+
+  $request_timeout = 120;
+
+  if ($request_timeout_env) {
+    $request_timeout = $request_timeout_env;
+  }
+    
   /*
    * Initialise the Workbooks API object
    */
@@ -54,7 +73,7 @@ function testLogin($service          = 'http://localhost:3000',      // Set to N
     // The following settings are used in Workbooks auto-test environment and are not typical.
     'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
     'connect_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
-    'request_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
+    'request_timeout'    => $request_timeout,                         // Optional, if unset defaults to 20 seconds
     'verify_peer'        => $verify_peer,                             // Optional, if unset defaults to checking the peer SSL certificate
   );
   if (isset($service)) {

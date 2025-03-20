@@ -1,7 +1,7 @@
 #
 #  A Ruby wrapper for the Workbooks API documented at http://www.workbooks.com/api
 #
-#  Last commit $Id: workbooks_api.rb 51692 2021-07-22 16:12:02Z jmonahan $
+#  Last commit $Id: workbooks_api.rb 57318 2023-02-09 15:55:19Z kswift $
 #  License: www.workbooks.com/mit_license
 #
 #  Significant methods in the class Workbooks:
@@ -131,6 +131,7 @@ class WorkbooksApi
   attr_reader :request_timeout
   attr_reader :verify_peer # default: true (false is NOT correct for Production use)
   attr_accessor :fast_login # speed up the login by not returning my_queues and some other details during login.
+  attr_accessor :json_utf8_encoding     # Set the encoding used for data from the client, use 'u4' (\uNNNN) for backward compatibility, default raw utf8
   attr_reader :service
   attr_reader :last_request_duration
   attr_reader :user_queues # when logged in contains an array of user queues
@@ -141,6 +142,7 @@ class WorkbooksApi
   attr_accessor :http_debug_output
   attr_reader :login_response
   attr_accessor :audit_lifetime_days # If set to a positive integer audit records expire and are automatically deleted
+  attr_accessor :process_start_time # The time this object was created which should be when the script process started
 
   # The content_type governs the encoding used for data transfer to the Service. Two forms are
   # supported in this binding; use FORM_DATA for file uploads.
@@ -167,6 +169,8 @@ class WorkbooksApi
   #   - :logger: to get logging output set to an instance of Logger in which case Logger#add is called
   #   - :http_debug_output: if :logger is also set HTTP debug output is also generated
   #   - :audit_lifetime_days: if set to a positive integer audit records expire and are automatically deleted 
+  #   - :json_utf8_encoding:  if set defines the on-the-wire utf8 encoding used between the server and client.
+  #                           'u4' (\uNNNN) for backward compatibility, default raw utf8
   #
   def initialize(params={})
     @application_name = params[:application_name] or raise WorkbooksApiException.new, 'An application name is required'
@@ -177,6 +181,7 @@ class WorkbooksApi
     @request_timeout = params[:request_timeout] || DEFAULT_REQUEST_TIMEOUT
     @verify_peer = params.has_key?(:verify_peer) ? params[:verify_peer] : true
     @fast_login = params.has_key?(:fast_login) ? params[:fast_login] : true
+    @json_utf8_encoding = params.has_key?(:json_utf8_encoding) ? params[:json_utf8_encoding] : ''
     @service = params[:service] || DEFAULT_SERVICE
     @logger = params[:logger]
     @audit_lifetime_days = params[:audit_lifetime_days]
@@ -186,6 +191,7 @@ class WorkbooksApi
     @api_key = params[:api_key]
     @username = params[:username]
     @logical_database_id = params[:logical_database_id]
+    @process_start_time = Time.now().to_i
   end
 
   #
@@ -216,6 +222,30 @@ class WorkbooksApi
     Base64.encode64((database_instance_id.to_i+17).to_s).chomp.reverse
   end
 
+  # Get the elapsed time since the process started in seconds
+  # return Integer the elapsed time in seconds
+  def get_elapsed_process_time
+    return Time.now().to_i - @process_start_time
+  end
+
+  # Get the process time allowed in seconds or nil if not set
+  # return Integer the process time allowed in seconds or nil if not set
+  def get_process_timeout
+    return ENV['TIMEOUT'] ? ENV['TIMEOUT'].to_i : nil
+  end
+
+  # Get the process time remaining in seconds or nil if no timeout is set
+  # return Integer the time remaining in seconds or nil
+  def get_process_time_remaining
+    process_timeout = get_process_timeout()
+    if process_timeout
+      time_left = process_timeout - get_elapsed_process_time()
+      return time_left < 0 ? 0 : time_left
+    else
+      return nil
+    end
+  end
+  
   # Helper method which evaluates a response, see WorkbooksApiResponse#condensed_status.
   def condensed_status(response)
     response.condensed_status
@@ -277,6 +307,9 @@ class WorkbooksApi
     params[:_strict_attribute_checking] = params[:_strict_attribute_checking].nil? ? true : params[:_strict_attribute_checking]
     params[:api_version] ||= @api_version
     params[:_fast_login] ||= @fast_login
+    if !@json_utf8_encoding.nil? && !@json_utf8_encoding.empty?
+      params[:json_utf8_encoding] = @json_utf8_encoding
+    end
 
     response = make_request('login.api', :post, params)
     parsed_response = JSON.parse(response.body) rescue []
@@ -321,6 +354,16 @@ class WorkbooksApi
     retval
   end
 
+  def uri_encode(str)
+    # Now old is this ruby?
+    if URI.respond_to?(:encode)
+      URI::encode(str)
+    else
+      p = URI::Parser.new
+      p.escape(str)
+    end
+  end
+    
   # 
   # Make a request to an endpoint on the service to read or list objects. You must have logged in first
   # * endpoint - selects the portion of the API to use, e.g. 'crm/organisations'
@@ -333,21 +376,22 @@ class WorkbooksApi
   # 
   def get(endpoint, params=nil, options={})
     url_encode = options[:content_type].nil? ? true : options[:content_type]
-    
+
     array_params = [] # those where the value is an array, not simply a value
     params ||= {}
+    params = params.dup
     params.each do |key, value|
       if value.is_a?(Array)
         if key.to_s == '_filters[]' # '_filters[]' should be either an array of filters or a single filter
           value = [value] if !value[0].is_a?(Array) # deal with single filter
           value.each do |filter|
-            array_params << '_ff[]=' + (url_encode ? URI::encode(filter[0].to_s) : filter[0].to_s)
-            array_params << '_ft[]=' + (url_encode ? URI::encode(filter[1].to_s) : filter[1].to_s)
-            array_params << '_fc[]=' + (filter[2].nil? ? true : (url_encode ? URI::encode(filter[2].to_s) : filter[2].to_s))
+            array_params << '_ff[]=' + (url_encode ? uri_encode(filter[0].to_s) : filter[0].to_s)
+            array_params << '_ft[]=' + (url_encode ? uri_encode(filter[1].to_s) : filter[1].to_s)
+            array_params << '_fc[]=' + (filter[2].nil? ? true : (url_encode ? uri_encode(filter[2].to_s) : filter[2].to_s))
           end
         else
           value.each do |array_value|
-            array_params << key.to_s + '=' + (url_encode ? URI::encode(array_value.to_s) : array_value.to_s)
+            array_params << key.to_s + '=' + (url_encode ? uri_encode(array_value.to_s) : array_value.to_s)
           end
         end
       end
@@ -497,6 +541,9 @@ class WorkbooksApi
       post_params[:api_version] ||= @api_version
       post_params[:application_name] ||= @application_name
       post_params[:user_agent] ||= @user_agent
+      if !@json_utf8_encoding.nil? && !@json_utf8_encoding.empty?
+        post_params[:json_utf8_encoding] = @json_utf8_encoding
+      end
     else
       ensure_login
     end
@@ -548,6 +595,13 @@ class WorkbooksApi
     url_params = {
       :_dc => (start_time.to_f * 1000).to_i # cache-buster
     }
+    
+    # Add a request parameter _max_request_duration to tell the server how long this process client has left
+    process_time_remaining = get_process_time_remaining() 
+    if process_time_remaining
+      url_params[:_max_request_duration] = process_time_remaining
+    end
+    
     url = get_url(endpoint, url_params)
     post_params[:_method] ||= method.to_s.upcase
     post_params[:client] ||= 'api'

@@ -4,7 +4,7 @@
  *   The example also shows how to set a value on a record for a given action.
  *   Two different types of action are being tested here  - web action (process) and scheduled action (process)
  *
- *   Last commit $Id: action_example.php 49692 2020-12-11 10:51:02Z ebeckett $
+ *   Last commit $Id: action_example.php 63230 2024-06-20 10:31:52Z ebeckett $
  *
  *       The MIT License
  *
@@ -57,7 +57,7 @@ $create_web_processes = array(
     'script_id'                     => 1,
     'script_name'                   => 'Hello User',
     'web_identifier'                => 'Test1',
-    'authenticated_run_as'          => 101854,
+    'authenticated_run_as'          => 21333,
     'log_level'                     => 'debug',
     'log_level_expiry'              => '2020-12-10T12:00:00.000Z',
   ),
@@ -77,7 +77,6 @@ $object_id_lock_versions = $workbooks->idVersions($response);
 
 foreach (array(0,1) as $value) {
   $id = $created_processes[$value]['id'];
-  $status = $created_processes[$value]['status'];
   
   # Log each record seperatelty, so that we can see the all the fields without truncation.
   $workbooks->log("Created web process $value", $created_processes[$value]);
@@ -183,7 +182,6 @@ $object_id_lock_versions = $workbooks->idVersions($response);
 
 foreach (array(0,1) as $value) {
   $id = $created_processes[$value]['id'];
-  $status = $created_processes[$value]['status'];
   
   # Log each record seperatelty, so that we can see the all the fields without truncation.
   $workbooks->log("Created scheduled process $value", $created_processes[$value]);

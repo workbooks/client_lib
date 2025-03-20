@@ -13,7 +13,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *  state. 
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: ApiDataExample.java 22080 2014-05-21 12:53:52Z bviroja $
+ * 	Last commit $Id: ApiDataExample.java 65874 2025-02-28 14:11:26Z jmonahan $
  */
 
 public class ApiDataExample {
@@ -121,7 +121,7 @@ public class ApiDataExample {
 	public void getSingleAPIData() {
 		HashMap<String, Object> filter3 = new HashMap<String, Object> ();
 		
-		filter3.put("_filter_json", "[['key', 'eq', 'api_data_example: poppins']]");
+		filter3.put("_filter_json", "[[\"key\", \"eq\", \"api_data_example: poppins\"]]");
 		
 		try {
 			WorkbooksApiResponse response = workbooks.assertGet("automation/api_data", filter3, null);

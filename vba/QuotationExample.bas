@@ -1,6 +1,6 @@
 ' Sample code to invoke WorkbooksApi
 '
-' Last commit $Id$
+' Last commit $Id: QuotationExample.bas 57625 2023-03-10 12:45:15Z klawless $
 ' License: www.workbooks.com/mit_license
 '
 ' This example does the following:

@@ -8,14 +8,14 @@ import javax.json.JsonObject;
  *  see TestLoginHelper.java
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: TestUsernamePasswordSessionHelper.java 22080 2014-05-21 12:53:52Z bviroja $
+ * 	Last commit $Id: TestUsernamePasswordSessionHelper.java 65931 2025-03-06 15:19:28Z jkay $
  */
  
 public class TestUsernamePasswordSessionHelper {
 
 	
 	HashMap<String, Object> params = new HashMap<String,Object>();
-	String service = "http://localhost:3000";
+	String service = System.getenv("WB_SERVICE").isEmpty() ? "http://localhost:3000" : System.getenv("WB_SERVICE");
 	String application_name = "java_test_client";
 	String user_agent = "java_test_client/0.1";
 	String username = "demo@workbooks.com";

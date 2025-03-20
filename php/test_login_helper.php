@@ -6,7 +6,7 @@
  *   Process Engine which will set up a session for you automatically without requiring
  *   an API key.
  *
- *   Last commit $Id: test_login_helper.php 54366 2022-04-20 09:24:01Z klawless $
+ *   Last commit $Id: test_login_helper.php 63933 2024-09-03 14:06:12Z jmonahan $
  *
  *       The MIT License
  *
@@ -41,17 +41,19 @@ if(!function_exists('testLogin')) {
 
   define('DEFAULT_SERVICE_ADDRESS', 'http://localhost:3000');
   define('EXAMPLE_API_KEY', '01234-56789-01234-56789-01234-56789-01234-56789');
+  define('DEFAULT_REQUEST_TIMEOUT', 120);
   
   function testLogin($service          = DEFAULT_SERVICE_ADDRESS,      // Set to NULL to use the production service
-                     $application_name = 'test_client', 
-                     $user_agent       = 'test_client/0.1', 
+                     $application_name = 'php_test_client', 
+                     $user_agent       = 'php_test_client/0.1', 
                      $verify_peer      = false,
                      $api_key          = EXAMPLE_API_KEY) {
 
 
-    // allow the server and API key to be overridden with environment variables
+    // allow the server, API key and timeout to be overridden with environment variables
     $service_env = getenv("WB_SERVICE");
     $api_key_env = getenv("WB_API_KEY");
+    $request_timeout_env = getenv("WB_REQUEST_TIMEOUT");
 
     if ($service_env) {
       $service = $service_env;
@@ -60,6 +62,15 @@ if(!function_exists('testLogin')) {
     if ($api_key_env) {
       $api_key = $api_key_env;
     }
+
+    $request_timeout = DEFAULT_REQUEST_TIMEOUT;
+
+    if ($request_timeout_env) {
+      $request_timeout = $request_timeout_env;
+    }
+
+    // Override the json wire encoding
+    $json_utf8_encoding = getenv("WB_JSON_UTF8");
     
     /*
      * Initialise the Workbooks API object
@@ -71,13 +82,16 @@ if(!function_exists('testLogin')) {
       // The following settings are used in Workbooks auto-test environment and are not typical.
       'logger_callback'    => array('WorkbooksApi', 'logAllToStdout'),  // A noisy logger
       'connect_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
-      'request_timeout'    => 120,                                      // Optional, if unset defaults to 20 seconds
+      'request_timeout'    => $request_timeout,                         // Optional, if unset defaults to 20 seconds
       'verify_peer'        => $verify_peer,                             // Optional, if unset defaults to checking the peer SSL certificate
-      
       'api_key'            => $api_key,
     );
     if (isset($service)) {
       $service_params['service'] = $service;
+    }
+
+    if (isset($json_utf8_encoding)) {
+      $service_params['json_utf8_encoding'] = $json_utf8_encoding;
     }
     
     $workbooks = new WorkbooksApi($service_params);

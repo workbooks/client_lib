@@ -3,7 +3,7 @@
 /**
  *   A PHP wrapper for the Workbooks API documented at http://www.workbooks.com/api
  *
- *   Last commit $Id: workbooks_api.php 56196 2022-10-20 13:44:51Z gbarlow $
+ *   Last commit $Id: workbooks_api.php 58588 2023-06-06 09:49:42Z tbankowski $
  *   License: www.workbooks.com/mit_license
  *
  *
@@ -92,6 +92,7 @@ class WorkbooksApi
   protected $request_timeout = 120;
   protected $verify_peer = true;     // false is not correct for Production use.
   protected $fast_login = true;     // speed up the login by not returning my_queues and some other details during login.
+  protected $json_utf8_encoding = NULL;    // Set the encoding used for data from the client, use 'u4' (\uNNNN) for backward compatibility, default raw utf8
   protected $service = 'https://secure.workbooks.com';
   protected $last_request_duration = NULL;
   protected $user_queues = NULL;     // when logged in contains an array of user queues
@@ -213,6 +214,10 @@ class WorkbooksApi
 
     if (isset($params['fast_login'])) {
       $this->setFastLogin($params['fast_login']);
+    }
+
+    if (isset($params['json_utf8_encoding'])) {
+      $this->setJsonUtf8Encoding($params['json_utf8_encoding']);
     }
 
     // Set the process start time to now
@@ -601,8 +606,9 @@ class WorkbooksApi
    * @return Integer the time remaining in seconds or NULL
   **/
   public function getProcessTimeRemaining(){
-    if (!is_null($this->getProcessTimeout())){
-      $time_left = $this->getProcessTimeout() - $this->getElapsedProcessTime();
+    $process_timeout = $this->getProcessTimeout();
+    if (!is_null($process_timeout)){
+      $time_left = $process_timeout - $this->getElapsedProcessTime();
       return $time_left < 0 ? 0 : $time_left;
     }else{
       return NULL;
@@ -645,6 +651,24 @@ class WorkbooksApi
   **/
   public function getFastLogin() {
     return $this->fast_login;
+  }
+
+  /**
+   * Set the json encoding used for downloaded data.
+   * @param Boolean $json_utf8_encoding
+  **/
+  public function setJsonUtf8Encoding($json_utf8_encoding) {
+    $this->json_utf8_encoding = $json_utf8_encoding;
+    return $this;
+  }
+
+  /**
+   * Get the json encoding used for downloaded data.
+   *
+   * @return Boolean
+  **/
+  public function getJsonUtf8Encoding() {
+    return $this->json_utf8_encoding;
   }
 
   /**
@@ -1012,6 +1036,11 @@ class WorkbooksApi
       throw new Exception('A logical database ID must be supplied when trying to re-connect to a session');
     }
 
+    $encoding = $this->getJsonUtf8Encoding();
+    if (!empty($encoding)) {
+      $params['json_utf8_encoding'] = $this->getJsonUtf8Encoding();
+    }
+
     // These default settings can be overridden by the caller.
     $params = array_merge(array(
         '_application_name'          => $this->getApplicationName(),
@@ -1020,6 +1049,8 @@ class WorkbooksApi
         'api_version'                => $this->getApiVersion(),
         '_fast_login'                => $this->getFastLogin(),
     ), $params);
+
+    // $this->log('login() paramters', $params);
     
     $sr = self::makeRequest('login.api', 'POST', $params);
     $http_status =& $sr['http_status'];
@@ -1220,7 +1251,7 @@ class WorkbooksApi
     }  
     
     $filter_params = $this->encodeMethodParams($objs, $method);
-    $ordered_post_params = $this->fullSquare($objs, !(@$options['content_type'] == WorkbooksApi::FORM_DATA));
+    $ordered_post_params = $this->fullSquare($objs, !( (isset($options['content_type']) ? $options['content_type'] : '') == WorkbooksApi::FORM_DATA));
     $response = $this->apiCall($endpoint, 'PUT', $params, array_merge($filter_params, $ordered_post_params), $options);
 
     // $this->log('batch() returns', $response, 'info');
@@ -1312,6 +1343,10 @@ class WorkbooksApi
     if ($this->getApiKey()) {
       $post_params['api_key'] = $this->getApiKey();
       $post_params['_api_version'] = $this->getApiVersion();
+      if (null != $this->getJsonUtf8Encoding()) {
+        $post_params['json_utf8_encoding'] = $this->getJsonUtf8Encoding();
+      }
+        
     } else {
       $this->ensureLogin();
     }
@@ -1370,9 +1405,10 @@ class WorkbooksApi
       '_dc'     => round(microtime(true)*1000), // cache-buster
     );
     
-    # Add a request parameter _process_time_remaining to tell the server how long this process client has left
-    if (!is_null($this->getProcessTimeRemaining())){
-      $url_params['_process_time_remaining'] = $this->getProcessTimeRemaining();
+    # Add a request parameter _max_request_duration to tell the server how long this process client has left
+    $process_time_remaining = $this->getProcessTimeRemaining();
+    if (!is_null($process_time_remaining)){
+      $url_params['_max_request_duration'] = $process_time_remaining;
     }
     
     $url = $this->getUrl($endpoint, $url_params);
@@ -1502,7 +1538,7 @@ class WorkbooksApi
     //   HTTP/1.1 302 Found
     preg_match('/HTTP\/.* ([0-9]+) .*/', $headers, $status);
     $http_status = (is_array($status) && (count($status) > 1)) ? intval($status[1]) : 0;
-    
+
     if ($http_status == 0) {
       $e = new WorkbooksApiException(array(
         'workbooks_api' => $this,

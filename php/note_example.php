@@ -3,7 +3,7 @@
 /**
 * A demonstration of using the Workbooks API via a thin PHP wrapper to CRUD notes
 *
-* Last commit $Id: note_example.php 18524 2013-03-06 11:15:59Z jkay $
+* Last commit $Id: note_example.php 59053 2023-07-14 13:47:58Z kswift $
 *
 * The MIT License
 *
@@ -65,6 +65,9 @@ $html = <<<EOF
 <a href="http://www.workbooks.com/" target="_blank">Workbooks.com</a>
 EOF;
 
+$uft8md4_subject = 'Note number 4 🎂 with cake';
+$uft8md4_text = 'This is the body of note number 4, it has cake 🎂, a tree 🌲 and a snowman ⛄';
+
 $create_notes = array(
   0 => array(
     'resource_id'   => $created_organisation_id,
@@ -77,21 +80,27 @@ $create_notes = array(
     'resource_type' => 'Private::Crm::Organisation',
     'subject'   => 'Note number 2',
     'text'      => $html //Text on notes can render html
-    
   ),
   2 => array(
     'resource_id'   => $created_organisation_id,
     'resource_type' => 'Private::Crm::Organisation',
     'subject'   => 'Note number 3',
     'text'      => 'This is the body of note number 3'
-    
+  ),
+  3 => array(
+    'resource_id'   => $created_organisation_id,
+    'resource_type' => 'Private::Crm::Organisation',
+    'subject'   => $uft8md4_subject,
+    'text'      => $uft8md4_text
   ),
 );
 
 $response = $workbooks->assertCreate('notes.api', $create_notes);
+#$workbooks->log('created objects', $response);
 $note_1 = $response['affected_objects'][0];
 $note_2 = $response['affected_objects'][1];
 $note_3 = $response['affected_objects'][2];
+$note_4 = $response['affected_objects'][3];
 
 /*
 * Update the first Note associated with that organisation
@@ -107,14 +116,14 @@ $workbooks->assertUpdate('notes.api', $update_note_1);
 
 
 /*
-* Delete the last Note associated with that organisation
+* Delete the 3rd Note associated with that organisation
 */
 
 $deletion_array = array('id' => $note_3['id'], 'lock_version' => $note_3['lock_version']);
 $workbooks->assertDelete('notes.api', $deletion_array);
  
 /*
-* List the two Notes we have left
+* List the Notes we have left
 */
 $filter_limit_select = array(
   '_start' => '0', // Starting from the 'zeroth' record
@@ -133,6 +142,20 @@ $filter_limit_select = array(
 );
 $response = $workbooks->assertGet('notes.api', $filter_limit_select);
 $workbooks->log('Fetched objects', $response['data']);
+
+if ($response['data'][2]['subject'] != $uft8md4_subject) {
+  $workbooks->log('Returned mb4uft subject not as expected', $response['data'][2]['subject'], 'error');
+  if(function_exists('testExit')) {
+    testExit($workbooks, $exit_error);
+  }
+}
+
+if ($response['data'][2]['text'] != $uft8md4_text) {
+  $workbooks->log('Returned mb4uft text not as expected', $response['data'][2]['subject'], 'error');
+  if(function_exists('testExit')) {
+    testExit($workbooks, $exit_error);
+  }
+}
 
 /**
 * Delete the created organisation

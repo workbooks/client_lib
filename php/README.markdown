@@ -44,7 +44,7 @@ Example:
     require_once 'workbooks_api.php';
     
     $workbooks = new WorkbooksApi(array(
-      'application_name'   => 'PHP test client',
+      'application_name'   => 'php_test_client',
       'user_agent'         => 'php_test_client/0.1',
       'api_key'            => 'xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx-xxxxx',
     )
@@ -336,7 +336,7 @@ The API is documented at <a href="http://www.workbooks.com/api" target="_blank">
 
 ## Requirements
 
-This binding uses CURL and JSON PHP extensions. It should work on PHP 5.2 or later; it has been tested using PHP 5.2.4 on Ubuntu 8.04 and PHP 5.3.2 on Mac OS X 10.6.4 and Ubuntu 10.04.
+This binding uses CURL and JSON PHP extensions. It has been tested using versions of PHP from PHP 7.2 through PHP 8.4.
 
 ## License
 
@@ -344,7 +344,7 @@ Licensed under the MIT License
 
 > The MIT License
 > 
-> Copyright (c) 2008-2014, Workbooks Online Limited.
+> Copyright (c) 2008-2025, Workbooks Online Limited.
 > 
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -366,4 +366,4 @@ Licensed under the MIT License
 
 ## Support
 
-Please contact <a href="mailto:support@workbooks.com">support@workbooks.com</a>. Enhancement suggestions should be logged on the Workbooks ideas forum at <a href="http://ideas.workbooks.com" target="_blank">http://ideas.workbooks.com</a>.
+We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service.  *These bindings are provided "as-is" and without any commitment to support.* If you do find issues with the bindings published here we welcome the submission of patches which we will evaluate and may merge in due course.

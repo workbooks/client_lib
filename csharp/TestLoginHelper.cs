@@ -1,6 +1,6 @@
  /**
   * 	License: www.workbooks.com/mit_license
-  * 	Last commit $Id$
+  * 	Last commit $Id: TestLoginHelper.cs 63933 2024-09-03 14:06:12Z jmonahan $
   *
   * Login wrapper for Workbooks for API test purposes. This version uses an API Key to
   * authenticate which is the recommended approach unless you are running under the
@@ -31,6 +31,19 @@ namespace WorkbooksApiApplication
 		public WorkbooksApi workbooks = null;
 
 		public WorkbooksApi testLogin() {
+
+      // allow the server and API key to be overridden with environment variables
+      string service_env = Environment.GetEnvironmentVariable("WB_SERVICE");
+      string api_key_env = Environment.GetEnvironmentVariable("WB_API_KEY");
+
+      if (service_env != null) {
+        service = service_env;
+      }
+
+      if (api_key_env != null) {
+        api_key = api_key_env;
+      }
+
 			if (service != null) {
 				loginParams.Add("service", service);
 			}

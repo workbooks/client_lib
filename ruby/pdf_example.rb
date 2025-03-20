@@ -2,7 +2,7 @@
 #  A demonstration of using the Workbooks API to fetch a PDF document via a thin Ruby wrapper
 #
 #
-#  Last commit $Id: pdf_example.rb 22501 2014-07-01 12:17:25Z jkay $
+#  Last commit $Id: pdf_example.rb 57318 2023-02-09 15:55:19Z kswift $
 #  License: www.workbooks.com/mit_license
 #
 
@@ -34,7 +34,7 @@ response = workbooks.assert_get('accounting/sales_orders', {
   :_dir => 'ASC',
   '_select_columns[]' => ['id'],
 })
-if !response.data.size == 1
+if response.data.size != 1
   workbooks.log('Did not find any orders!', response)
   exit(1)
 end
@@ -46,7 +46,7 @@ url = "accounting/sales_orders/#{order_id}.pdf?template=#{pdf_template_id}"
 pdf = workbooks.get(url, nil, :decode_json => false)
 # Ensure the response looks like a PDF
 if !pdf.match(/^\%PDF\-1\.4\s/)
-  workbooks.log('ERROR: Unexpected response: is it a PDF?', pdf, :error)
+  workbooks.log('ERROR: Unexpected response: is it a PDF?', pdf, Logger::ERROR )
   exit(1)
 end
 

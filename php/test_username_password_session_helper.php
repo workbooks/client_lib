@@ -7,7 +7,7 @@
  *
  *   If you are running under the Process Engine none of this is necessary.
  *
- *   Last commit $Id: test_username_password_session_helper.php 18524 2013-03-06 11:15:59Z jkay $
+ *   Last commit $Id: test_username_password_session_helper.php 65912 2025-03-04 21:23:36Z jkay $
  *
  *       The MIT License
  *
@@ -39,11 +39,17 @@ $exit_ok = 0;
  * Login to Workbooks and return a handle to the workbooks connection
  */
 function testLogin($service          = 'http://localhost:3000',      // Set to NULL to use the production service
-                   $application_name = 'test_client', 
-                   $user_agent       = 'test_client/0.1', 
+                   $application_name = 'php_test_client', 
+                   $user_agent       = 'php_test_client/0.1', 
                    $verify_peer      = false, 
                    $username         = 'system@workbooks.com', 
                    $password         = 'abc123') {
+
+  // allow the server to be overridden with environment variables
+  $service_env = getenv("WB_SERVICE");
+  if ($service_env) {
+    $service = $service_env;
+  }
 
   /*
    * Initialise the Workbooks API object

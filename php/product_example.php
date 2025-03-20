@@ -70,7 +70,7 @@ $filter_limit_select = array(
   '_dir'                 => 'ASC',                                   //   in ascending order
   '_ff[]'                => 'created_through',                       // Filter by this column
   '_ft[]'                => 'eq',                                    //   equals
-  '_fc[]'                => 'test_client',                           //   this script
+  '_fc[]'                => 'php_test_client',                       //   this script
   '_select_columns[]'    => array(                                   // An array, of columns to select
     'id',
     'lock_version',

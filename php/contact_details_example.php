@@ -3,7 +3,7 @@
 /**
  *   A demonstration of using the Workbooks API via a thin PHP wrapper
  *
- *   Last commit $Id: contact_details_example.php 56095 2022-10-11 09:58:27Z hsurendralal $
+ *   Last commit $Id: contact_details_example.php 63169 2024-06-13 10:50:58Z gphillips $
  *
  *       The MIT License
  *
@@ -94,6 +94,8 @@ $create_contact_details = array(
     'country'                              => 'United Kingdom',
     'location_name'                        => 'Work',
     'alternate_email'                      => 'test@workbooks.com',
+    'preferred_billing'                    => true,
+    'preferred_delivery'                   => true,
     'party_id'                             => $response_org['affected_objects'][0]['id']
   ),
   array (
@@ -109,6 +111,7 @@ $create_contact_details = array(
 
 $response = $workbooks->assertCreate('crm/party_locations', $create_contact_details);
 $object_id_lock_versions = $workbooks->idVersions($response);
+$workbooks->log("Create Party Locations Affected Objects", $response["affected_objects"]);
 
 /*
  * Update those Contact Details
@@ -131,12 +134,15 @@ $update_three_contact_details = array(
     'id'                                   => $object_id_lock_versions[2]['id'],
     'lock_version'                         => $object_id_lock_versions[2]['lock_version'],
     'mobile'                               => '0777 111 222',
+    'preferred_billing'                    => true,
+    'preferred_delivery'                   => true,
     'town'                                 => 'Beading'
   )
 );
 
 $response = $workbooks->assertUpdate('crm/party_locations', $update_three_contact_details);
 $object_id_lock_versions = $workbooks->idVersions($response);
+$workbooks->log("Update Party Locations Affected Objects", $response["affected_objects"]);
 
 /*
  * Get Contact Detail records matching on email or alternate_email
@@ -152,12 +158,33 @@ $filter_limit_select = array(
     '_select_columns[]'    => array(
     'id',
     'lock_version',
-    'street_address'
+    'street_address',
+    'preferred_billing',
+    'preferred_delivery'
   )
 );
 
 $response = $workbooks->assertGet('crm/party_locations', $filter_limit_select);
 $workbooks->log('Fetched objects', $response['data']);
+
+/*
+ * Get Contact Detail records matching on preferred_billing address
+ */
+$filter_on_preferred_billing = array(
+    '_ff[]' => 'preferred_billing',
+    '_ft[]' => 'true',
+    '_fc[]' => '',
+    '_select_columns[]' => array(
+    'id',
+    'lock_version',
+    'street_address',
+    'preferred_billing',
+    'preferred_delivery'
+  )
+);
+
+$response = $workbooks->assertGet('crm/party_locations', $filter_on_preferred_billing);
+$workbooks->log('Fetched objects based on preferred_billing', $response['data']);
 
 /*
  * Combined call to Create, Update and Delete several Contact Detail records

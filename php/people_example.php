@@ -5,7 +5,7 @@
  *   The created_through_reference and created_through attributes are used as if the caller
  *   were synchronising with an external service.
  *
- *   Last commit $Id: people_example.php 56158 2022-10-14 13:59:50Z hsurendralal $
+ *   Last commit $Id: people_example.php 63936 2024-09-03 21:33:12Z jmonahan $
  *
  *       The MIT License
  *
@@ -125,7 +125,7 @@ $filter_limit_select = array(
   '_dir'                 => 'ASC',                                   //   in ascending order
   '_ff[]'                => 'created_through',                       // Filter by this column
   '_ft[]'                => 'eq',                                    //   equals
-  '_fc[]'                => 'test_client',                           //   this script
+  '_fc[]'                => 'php_test_client',                       //   this script
   '_select_columns[]'    => array(                                   // An array, of columns to select
     'id',
     'lock_version',

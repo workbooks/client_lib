@@ -1,5 +1,5 @@
 // License: www.workbooks.com/mit_license
-// Last commit $Id$
+// Last commit $Id: EmailSendExample.cs 57625 2023-03-10 12:45:15Z klawless $
 //
 // A demonstration of using the Workbooks API to send emails via a thin C# wrapper.
 // Emails can be based on templates (with substitution of values from records) or

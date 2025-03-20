@@ -342,7 +342,7 @@ The API is documented at <a href="http://www.workbooks.com/api" target="_blank">
 
 ## Requirements
 
-This binding uses .Net framework 4.0 and JSON extensions. It should work on .Net framework 4.0 or later; it has been tested using Mono compiler 2.10.8.1 on Ubuntu 12.04.
+This binding uses .Net framework and JSON extensions. It should work on .Net framework 4.0 or later; it has been tested using Mono on Ubuntu 12.04 and later versions of Mono including that on Ubuntu 24.04.
 
 ## License
 
@@ -350,7 +350,7 @@ Licensed under the MIT License
 
 > The MIT License
 >
-> Copyright (c) 2008-2014, Workbooks Online Limited.
+> Copyright (c) 2008-2025, Workbooks Online Limited.
 >
 > Permission is hereby granted, free of charge, to any person obtaining a copy
 > of this software and associated documentation files (the "Software"), to deal
@@ -372,4 +372,4 @@ Licensed under the MIT License
 
 ## Support
 
-Please contact <a href="mailto:support@workbooks.com">support@workbooks.com</a>. Enhancement suggestions should be logged on the Workbooks ideas forum at <a href="http://ideas.workbooks.com" target="_blank">http://ideas.workbooks.com</a>.
+We ensure backwards-compatability so that older versions of these bindings continue to work with the production Workbooks service.  *These bindings are provided "as-is" and without any commitment to support.* If you do find issues with the bindings published here we welcome the submission of patches which we will evaluate and may merge in due course.

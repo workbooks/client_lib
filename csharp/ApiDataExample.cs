@@ -1,5 +1,5 @@
 // License: www.workbooks.com/mit_license
-// Last commit $Id$
+// Last commit $Id: ApiDataExample.cs 65874 2025-02-28 14:11:26Z jmonahan $
 //
 /** Processes often need to store their state between runs. The 'API Data' facility provides
  *  a simple way to do this.
@@ -121,7 +121,7 @@ namespace ApiWrapper
     public void getSingleAPIData() {
       Dictionary<string, object> filter3 = new Dictionary<string, object> ();
 
-      filter3.Add("_filter_json", "[['key', 'eq', 'api_data_example: poppins']]");
+      filter3.Add("_filter_json", "[[\"key\", \"eq\", \"api_data_example: poppins\"]]");
 
       try {
         WorkbooksApiResponse response = workbooks.assertGet("automation/api_data", filter3, null);

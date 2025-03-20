@@ -11,7 +11,7 @@ import workbooks_app.client_lib.java.WorkbooksApi.WorkbooksApiResponse;
  *	A demonstration of using the Workbooks API to find records using "filters" via a thin Java wrapper
  * 
  * 	License: www.workbooks.com/mit_license
- * 	Last commit $Id: FilterExample.java 22068 2014-05-20 11:54:15Z jkay $
+ * 	Last commit $Id: FilterExample.java 65874 2025-02-28 14:11:26Z jmonahan $
  */
 
 public class FilterExample {
@@ -184,9 +184,9 @@ public class FilterExample {
 		 */
 		filter3.putAll(limit_select);
 		filter3.put("_filter_json", "[" +
-				"['main_location[county_province_state]', 'eq', 'Berkshire']," +
-				"['main_location[county_province_state]', 'ct', 'Yorkshire']," +
-				"['main_location[street_address]', 'not_blank', '']" +
+				"[\"main_location[county_province_state]\", \"eq\", \"Berkshire\"]," +
+				"[\"main_location[county_province_state]\", \"ct\", \"Yorkshire\"]," +
+				"[\"main_location[street_address]\", \"not_blank\", \"\"]" +
 				"]");
 		filter3.put("_fm", "(1 OR 2) AND 3");
 		

@@ -1,7 +1,7 @@
 //
 // A demonstration of using the Workbooks API via a thin C# wrapper
 //
-// Last commit $Id$
+// Last commit $Id: SimpleExample.cs 57625 2023-03-10 12:45:15Z klawless $
 // License: www.workbooks.com/mit_license
 //
 

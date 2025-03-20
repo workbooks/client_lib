@@ -3,7 +3,7 @@ Option Explicit
 ' VBA wrapper for the Workbooks API documented at http://www.workbooks.com/api built
 ' using VBA-Web (https://github.com/VBA-tools/VBA-Web)
 '
-' Last commit $Id$
+' Last commit $Id: WorkbooksApi.cls 57625 2023-03-10 12:45:15Z klawless $
 ' License: www.workbooks.com/mit_license
 '
 ' Significant methods in the class WorkbooksApi:
